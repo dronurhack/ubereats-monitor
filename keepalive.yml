@@ -1,0 +1,41 @@
+# ─────────────────────────────────────────────────────────────────────────────
+# .github/workflows/keepalive.yml — Prévention de la désactivation cron
+# ─────────────────────────────────────────────────────────────────────────────
+#
+# GitHub désactive automatiquement les crons d'un repo public
+# après 60 jours sans activité. Ce workflow effectue un commit
+# "ping" vide toutes les semaines pour maintenir le repo actif.
+# ─────────────────────────────────────────────────────────────────────────────
+
+name: KeepAlive — Éviter la désactivation des crons
+
+on:
+  schedule:
+    # Tous les dimanches à 03h00 UTC
+    - cron: "0 3 * * 0"
+
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  keepalive:
+    name: Ping hebdomadaire
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: 📥 Checkout
+        uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: 💓 Commit de keepalive
+        run: |
+          git config user.name "KeepAlive Bot"
+          git config user.email "keepalive@ubereats-monitor.local"
+          # Met à jour un fichier de trace avec la date
+          echo "Keepalive: $(date -u +'%Y-%m-%d %H:%M') UTC" >> .keepalive
+          git add .keepalive
+          git commit -m "🤍 Keepalive hebdomadaire $(date -u +'%Y-W%V')"
+          git push
