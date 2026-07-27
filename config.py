@@ -54,18 +54,22 @@ SCRAPFLY_OPTIONS = {
 
 # ─────────────────────────────────────────────
 # DÉTECTION DU MESSAGE "PAS DE LIVREURS"
-# Signaux stricts : UNIQUEMENT les phrases de pénurie globale de livreurs
-# (on évite "n'est pas disponible" qui correspond aux restaurants fermés)
+# Le script nettoie les accents et apostrophes avant comparaison !
 # ─────────────────────────────────────────────
 UNAVAILABILITY_SIGNALS = [
     "aucun coursier",
-    "aucun livreur",
     "pas de coursier",
+    "aucun livreur",
     "pas de livreur",
-    "no couriers nearby",
-    "no couriers available",
-    "livreurs indisponibles",
-    "coursiers indisponibles",
+    "coursier a proximite",
+    "livreur a proximite",
+    "coursiers a proximite",
+    "livreurs a proximite",
+    "no couriers",
+    "non disponible dans votre zone",
+    "indisponible dans votre zone",
+    "pas de coursiers",
+    "pas de livreurs",
 ]
 
 # ─────────────────────────────────────────────
