@@ -193,7 +193,6 @@ def scrape_city(client: ScrapflyClient, city: dict, conn: sqlite3.Connection) ->
                 render_js=SCRAPFLY_OPTIONS["render_js"],
                 proxy_pool=SCRAPFLY_OPTIONS["proxy_pool"],
                 country=SCRAPFLY_OPTIONS["country"],
-                timeout=SCRAPFLY_OPTIONS["timeout"],
                 wait_for_selector=SCRAPFLY_OPTIONS.get("wait_for_selector"),
                 # Simuler un vrai navigateur
                 headers={
