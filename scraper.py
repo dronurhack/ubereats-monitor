@@ -4,8 +4,6 @@ Interroge Scrapfly pour chaque ville et detecte les messages d'indisponibilite d
 Lance ce script via GitHub Actions (voir .github/workflows/scan.yml).
 """
 
-import base64
-import json
 import logging
 import os
 import re
@@ -119,28 +117,8 @@ def extract_script_text(html_content: str) -> str:
     return " ".join(scripts)
 
 
-# ─────────────────────────────────────────────
-# CONSTRUCTION DE L'URL UBEREATS
-# ─────────────────────────────────────────────
-def build_ubereats_url(city: dict) -> str:
-    """
-    Construit l'URL UberEats pour une ville francaise.
-    Le parametre 'pl' est un JSON encode en base64 avec les coords GPS.
-    """
-    location_payload = {
-        "addressLine1": city["name"],
-        "addressLine2": "France",
-        "city": city["name"],
-        "country": "FR",
-        "countryIso2": "FR",
-        "latitude": city["lat"],
-        "longitude": city["lon"],
-    }
-    pl_encoded = base64.urlsafe_b64encode(
-        json.dumps(location_payload, separators=(",", ":")).encode("utf-8")
-    ).decode("utf-8")
-    slug = city["slug"]
-    return "https://www.ubereats.com/fr/city/" + slug + "?pl=" + pl_encoded
+# Les URLs sont directement definies dans config.py (city["url"])
+# Pas besoin de constructeur — on utilise les URLs exactes fournies par l'utilisateur.
 
 
 # ─────────────────────────────────────────────
@@ -242,7 +220,7 @@ def save_result(
 def scrape_city(client: ScrapflyClient, city: dict, conn: sqlite3.Connection) -> None:
     """Lance le scraping UberEats pour une ville et enregistre le resultat."""
     city_name = city["name"]
-    url = build_ubereats_url(city)
+    url = city["url"]  # URL exacte definie dans config.py
     log.info("[%s] Scraping -> %s", city_name, url[:90] + "...")
 
     try:
