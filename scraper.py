@@ -141,31 +141,32 @@ def build_ubereats_url(city: dict) -> str:
 # ─────────────────────────────────────────────
 # DÉTECTION DU MESSAGE D'INDISPONIBILITÉ
 # ─────────────────────────────────────────────
+import unicodedata
+
+def normalize_text(text: str) -> str:
+    """Nettoie le texte (supprime accents, apostrophes spéciales, entités HTML) pour faciliter la recherche."""
+    # Remplacer entités HTML courantes
+    text = text.replace("&agrave;", "a").replace("&eacute;", "e").replace("&egrave;", "e")
+    # Supprimer les accents Unicode
+    nfkd = unicodedata.normalize('NFKD', text)
+    text = "".join([c for c in nfkd if not unicodedata.combining(c)])
+    # Remplacer apostrophes spéciales (’ -> ')
+    text = text.replace("’", "'").replace("`", "'")
+    return text.lower()
+
+
 def detect_unavailability(html_content: str) -> tuple[bool, str | None]:
     """
     Analyse le HTML rendu d'UberEats et cherche des signaux
     indiquant l'absence de livreurs ou de restaurants disponibles.
-
-    Retourne :
-        (True, phrase_détectée) si livreurs indisponibles
-        (False, None)           si livreurs disponibles
     """
-    content_lower = html_content.lower()
+    normalized_html = normalize_text(html_content)
 
     for signal in UNAVAILABILITY_SIGNALS:
-        if signal.lower() in content_lower:
-            log.debug("Signal détecté : '%s'", signal)
+        norm_signal = normalize_text(signal)
+        if norm_signal in normalized_html:
+            log.debug("Signal détecté : '%s' (trouvé via '%s')", signal, norm_signal)
             return True, signal
-
-    # Détection complémentaire : page vide de restaurants
-    # UberEats affiche généralement un compteur "X restaurants"
-    restaurant_count_match = re.search(
-        r'(\d+)\s*(restaurant|établissement|store)', content_lower
-    )
-    if restaurant_count_match:
-        count = int(restaurant_count_match.group(1))
-        if count == 0:
-            return True, "0 restaurants trouvés"
 
     return False, None
 
