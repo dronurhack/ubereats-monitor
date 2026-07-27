@@ -49,7 +49,6 @@ SCRAPFLY_OPTIONS = {
     "render_js": True,        # Rendu JavaScript côté cloud (headless browser)
     "proxy_pool": "public_residential_pool",  # Proxies résidentiels
     "country": "FR",          # Géolocalisation France
-    "timeout": 30000,         # Timeout 30s
     "wait_for_selector": "main",  # Attendre le contenu principal
 }
 
