@@ -13,8 +13,8 @@ CITIES = [
         "url": (
             "https://www.ubereats.com/fr/feed?diningMode=DELIVERY"
             "&pl=JTdCJTIyYWRkcmVzcyUyMiUzQSUyMkxlc25ldmVuJTIyJTJDJTIycmVmZXJlbmNlJTIyJTNBJTIyQ2hJSmg1"
-            "OVBKYU9yRmtnUmdHbmxOczJsREFRJTIyJTJDJTIycmVmZXJlbmNlVHlwZSUyMiUzQSUyMmdvb2dsZV9wbGFjZXMl"
-            "MjIlMkMlMjJsYXRpdHVkZSUyMiUzQTQ4LjU3MjA4JTJDJTIybG9uZ2l0dWRlJTIyJTNBLTQuMzIyMjklN0Q%3D"
+            "OVBKYU9yRmtnUmdHbmxOczJsREFRJTIyJTJDJTIycmVmZXJlbmNlVHlwZSUyMiUzQSUyMmdvb2dsZV9wbGFjZX"
+            "MlMjIlMkMlMjJsYXRpdHVkZSUyMiUzQTQ4LjU3MjA4JTJDJTIybG9uZ2l0dWRlJTIyJTNBLTQuMzIyMjklN0Q%3D"
         ),
     },
     {
@@ -45,15 +45,10 @@ DB_PATH = os.getenv("DB_PATH", "data/history.db")
 LOG_LEVEL = os.getenv("LOG_LEVEL", "INFO")
 
 # ─────────────────────────────────────────────
-# PHRASES / MOTS-CLÉS DE DÉTECTION D'INDISPONIBILITÉ
+# SIGNAL EXACT DE PÉNURIE DE LIVREURS UBER EATS
 # ─────────────────────────────────────────────
 UNAVAILABILITY_SIGNALS = [
     "aucun coursier a proximite",
     "aucun coursier à proximité",
     "aucun coursier disponible",
-    "indisponible pour le moment",
-    "plus de livreurs",
-    "pas de livreurs",
-    "service indisponible",
-    "indisponible",
 ]
