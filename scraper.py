@@ -1,13 +1,15 @@
 """
-scraper.py — Script principal de surveillance UberEats via curl_cffi (100% Gratuit & Anti-Bot Bypass)
-Imite la signature TLS/JA3 exacte d'un vrai navigateur Chrome pour contourner Cloudflare.
+scraper.py — Script principal de surveillance UberEats via curl_cffi + Proxies Gratuits
+Utilise la rotation de proxies HTTPS et d'empreintes TLS Chrome pour contourner Cloudflare.
 """
 
 import logging
 import os
+import random
 import re
 import sqlite3
 import sys
+import time
 import unicodedata
 from datetime import datetime, timezone
 
@@ -22,6 +24,37 @@ logging.basicConfig(
     datefmt="%Y-%m-%d %H:%M:%S",
 )
 log = logging.getLogger("ubereats-scraper")
+
+
+# ─────────────────────────────────────────────
+# LISTE DES PROXIES GRATUITS & ROTATION
+# ─────────────────────────────────────────────
+PROXY_SOURCES = [
+    "https://raw.githubusercontent.com/TheSpeedX/PROXY-List/master/http.txt",
+    "https://raw.githubusercontent.com/clarketm/proxy-list/master/proxy-list-raw.txt",
+    "https://raw.githubusercontent.com/monosans/proxy-list/main/proxies/http.txt",
+]
+
+
+def fetch_free_proxies() -> list[str]:
+    """Récupère une liste dynamique de proxies publics HTTP/HTTPS gratuits."""
+    proxies = []
+    log.info("Recuperation des proxies gratuits...")
+    session = requests.Session()
+    for source in PROXY_SOURCES:
+        try:
+            r = session.get(source, timeout=5)
+            if r.status_code == 200:
+                lines = r.text.splitlines()
+                for line in lines:
+                    line = line.strip()
+                    if line and ":" in line and not line.startswith("#"):
+                        proxies.append(f"http://{line}")
+        except Exception:
+            continue
+    log.info("%d proxies gratuits charges.", len(proxies))
+    random.shuffle(proxies)
+    return proxies
 
 
 # ─────────────────────────────────────────────
@@ -93,63 +126,76 @@ def detect_unavailability(raw_html: str, city_name: str) -> tuple[bool, str]:
 
 
 # ─────────────────────────────────────────────
-# SCRAPING VILLE VIA CURL_CFFI (TLS IMPERSONATE)
+# SCRAPING VILLE AVEC ROTATION PROXY
 # ─────────────────────────────────────────────
-def scrape_city(session: requests.Session, city: dict, conn: sqlite3.Connection) -> None:
+def scrape_city(city: dict, proxies: list[str], conn: sqlite3.Connection) -> None:
     city_name = city["name"]
     url = city["url"]
     log.info("[%s] Scraping -> %s", city_name, url[:80] + "...")
 
-    try:
-        # Requete HTTP avec impersonation TLS Chrome 120
-        response = session.get(
-            url,
-            impersonate="chrome120",
-            timeout=20,
-            headers={
-                "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8",
-                "Accept-Language": "fr-FR,fr;q=0.9,en-US;q=0.8,en;q=0.7",
-                "Cache-Control": "max-age=0",
-                "Sec-Ch-Ua": '"Not_A Brand";v="8", "Chromium";v="120", "Google Chrome";v="120"',
-                "Sec-Ch-Ua-Mobile": "?0",
-                "Sec-Ch-Ua-Platform": '"Windows"',
-                "Sec-Fetch-Dest": "document",
-                "Sec-Fetch-Mode": "navigate",
-                "Sec-Fetch-Site": "none",
-                "Sec-Fetch-User": "?1",
-                "Upgrade-Insecure-Requests": "1",
-            }
-        )
+    # On essaie d'abord en direct, puis avec jusqu'à 8 proxies si Cloudflare (403) bloque
+    max_attempts = 10
+    http_code = 0
+    raw_html = ""
+    last_error = None
 
-        http_code = response.status_code
-        raw_html = response.text or ""
-        log.info("[%s] HTTP %s - Taille HTML : %d octets", city_name, http_code, len(raw_html))
+    for attempt in range(max_attempts):
+        proxy = None if attempt == 0 else (proxies[attempt % len(proxies)] if proxies else None)
+        proxy_str = proxy if proxy else "DIRECT"
 
+        try:
+            session = requests.Session()
+            response = session.get(
+                url,
+                impersonate="chrome120",
+                proxies={"http": proxy, "https": proxy} if proxy else None,
+                timeout=12,
+                headers={
+                    "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,*/*;q=0.8",
+                    "Accept-Language": "fr-FR,fr;q=0.9,en-US;q=0.8",
+                    "Sec-Ch-Ua": '"Not_A Brand";v="8", "Chromium";v="120", "Google Chrome";v="120"',
+                    "Sec-Ch-Ua-Mobile": "?0",
+                    "Sec-Ch-Ua-Platform": '"Windows"',
+                    "Sec-Fetch-Dest": "document",
+                    "Sec-Fetch-Mode": "navigate",
+                    "Sec-Fetch-Site": "none",
+                    "Upgrade-Insecure-Requests": "1",
+                }
+            )
+
+            http_code = response.status_code
+            raw_html = response.text or ""
+
+            if http_code == 200 and len(raw_html) > 5000:
+                log.info("[%s] Succes via %s (HTTP 200 - %d octets)", city_name, proxy_str, len(raw_html))
+                break
+            else:
+                log.warning("[%s] Echec via %s (HTTP %s - %d octets)", city_name, proxy_str, http_code, len(raw_html))
+
+        except Exception as e:
+            last_error = str(e)
+            log.debug("[%s] Requete a echoue via %s : %s", city_name, proxy_str, e)
+
+        time.sleep(1)
+
+    if http_code == 200 and len(raw_html) > 5000:
         is_unavailable, detection_phrase = detect_unavailability(raw_html, city_name)
-
-        if is_unavailable:
-            status = "INDISPONIBLE"
-            log.warning("[%s] -- INDISPONIBLE -- Detecte via : '%s'", city_name, detection_phrase)
-        else:
-            status = "DISPONIBLE"
-            log.info("[%s] ++ DISPONIBLE ++", city_name)
-
+        status = "INDISPONIBLE" if is_unavailable else "DISPONIBLE"
         save_result(
             conn,
             city=city_name,
             status=status,
             detection=detection_phrase if is_unavailable else None,
-            http_code=http_code,
+            http_code=200,
         )
-
-    except Exception as e:
-        log.error("[%s] ERREUR scraping : %s", city_name, e)
+    else:
+        log.error("[%s] Impossible de bypasser Cloudflare apres %d essais.", city_name, max_attempts)
         save_result(
             conn,
             city=city_name,
             status="ERREUR",
-            http_code=0,
-            error=str(e),
+            http_code=http_code or 403,
+            error=last_error or "Cloudflare 403 / IP Blocked",
         )
 
 
@@ -158,17 +204,15 @@ def scrape_city(session: requests.Session, city: dict, conn: sqlite3.Connection)
 # ─────────────────────────────────────────────
 def main() -> None:
     log.info("========================================")
-    log.info("UberEats Monitor (curl_cffi TLS Impersonate) — Demarrage du scan")
+    log.info("UberEats Monitor (Rotation Proxies Gratuits) — Demarrage")
     log.info("Heure UTC : %s", datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M:%S"))
-    log.info("Villes : %s", ", ".join(c["name"] for c in CITIES))
     log.info("========================================")
 
     conn = init_db()
-
-    session = requests.Session()
+    proxies = fetch_free_proxies()
 
     for city in CITIES:
-        scrape_city(session, city, conn)
+        scrape_city(city, proxies, conn)
 
     conn.close()
     log.info("========================================")
