@@ -1,5 +1,5 @@
 # ─────────────────────────────────────────────────────────────────────────────
-# .github/workflows/scan.yml — GitHub Actions : surveillance automatique (curl_cffi Gratuit)
+# .github/workflows/scan.yml — GitHub Actions : surveillance automatique (ScraperAPI)
 # ─────────────────────────────────────────────────────────────────────────────
 
 name: UberEats Monitor — Scan toutes les 10 min
@@ -48,9 +48,11 @@ jobs:
           mkdir -p data
           mkdir -p docs
 
-      # ── 5. Scraper via curl_cffi TLS Impersonate (100% Gratuit) ──────────────
+      # ── 5. Scraper via ScraperAPI ───────────────────────────────────────────
       - name: 🔍 Scanner les villes UberEats
         run: python scraper.py
+        env:
+          SCRAPERAPI_KEY: ${{ secrets.SCRAPERAPI_KEY || '033ddfe5d867ec0be6ee2dbbd19a4906' }}
 
       # ── 6. Générer le dashboard HTML ─────────────────────────────────────────
       - name: 📊 Générer le dashboard
