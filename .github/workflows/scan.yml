@@ -1,5 +1,5 @@
 # ─────────────────────────────────────────────────────────────────────────────
-# .github/workflows/scan.yml — GitHub Actions : surveillance automatique (Playwright Gratuit)
+# .github/workflows/scan.yml — GitHub Actions : surveillance automatique (curl_cffi Gratuit)
 # ─────────────────────────────────────────────────────────────────────────────
 
 name: UberEats Monitor — Scan toutes les 10 min
@@ -22,7 +22,7 @@ jobs:
   scan:
     name: Scan des villes UberEats
     runs-on: ubuntu-latest
-    timeout-minutes: 8
+    timeout-minutes: 5
 
     steps:
       # ── 1. Checkout ──────────────────────────────────────────────────────────
@@ -38,11 +38,9 @@ jobs:
           python-version: "3.11"
           cache: "pip"
 
-      # ── 3. Dépendances & Playwright Chromium ─────────────────────────
-      - name: 📦 Installer les dépendances & Playwright
-        run: |
-          pip install -r requirements.txt
-          python -m playwright install chromium
+      # ── 3. Dépendances ───────────────────────────────────────────────────────
+      - name: 📦 Installer les dépendances
+        run: pip install -r requirements.txt
 
       # ── 4. Répertoires ───────────────────────────────────────────────────────
       - name: 📁 Préparer les répertoires
@@ -50,7 +48,7 @@ jobs:
           mkdir -p data
           mkdir -p docs
 
-      # ── 5. Scraper via Playwright (100% Gratuit) ──────────────────────────────
+      # ── 5. Scraper via curl_cffi TLS Impersonate (100% Gratuit) ──────────────
       - name: 🔍 Scanner les villes UberEats
         run: python scraper.py
 
