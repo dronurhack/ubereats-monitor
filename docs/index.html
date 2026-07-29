@@ -6,7 +6,6 @@
 <title>UberEats Monitor — Finistère</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
-<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
 <style>
 :root {
   --bg: #0a0f1e;
@@ -19,8 +18,6 @@
   --border: #1f2937;
   --radius: 16px;
   --radius-sm: 10px;
-  --glow-indispo: rgba(239,68,68,0.15);
-  --glow-dispo: rgba(16,185,129,0.15);
 }
 * { margin:0; padding:0; box-sizing:border-box; }
 body {
@@ -127,9 +124,7 @@ main { max-width: 1400px; margin: 0 auto; padding: 32px 24px; }
   border-radius: var(--radius);
   padding: 20px;
   text-align: center;
-  transition: transform 0.2s;
 }
-.stat-card:hover { transform: translateY(-2px); }
 .stat-card .value {
   font-size: 2rem;
   font-weight: 800;
@@ -144,7 +139,6 @@ main { max-width: 1400px; margin: 0 auto; padding: 32px 24px; }
 }
 .stat-dispo .value { color: #34d399; }
 .stat-indispo .value { color: #f87171; }
-.stat-total .value { color: #a5b4fc; }
 
 /* BEST HOURS */
 .best-slots {
@@ -181,7 +175,6 @@ main { max-width: 1400px; margin: 0 auto; padding: 32px 24px; }
   height: 100%;
   border-radius: 99px;
   background: linear-gradient(90deg, #f87171, #ef4444);
-  transition: width 0.8s ease;
 }
 .slot-pct {
   font-size: 0.85rem;
@@ -231,10 +224,7 @@ main { max-width: 1400px; margin: 0 auto; padding: 32px 24px; }
   text-align: center;
   font-size: 0.65rem;
   font-weight: 500;
-  cursor: default;
-  transition: transform 0.15s;
 }
-.heatmap-table td:hover { transform: scale(1.3); z-index: 10; position: relative; }
 .hm-day {
   font-size: 0.72rem;
   font-weight: 600;
@@ -272,24 +262,21 @@ main { max-width: 1400px; margin: 0 auto; padding: 32px 24px; }
   padding: 12px 16px;
   border-top: 1px solid var(--border);
 }
-.recent-table tr:hover td { background: var(--surface2); }
 .badge {
   display: inline-block;
   padding: 3px 10px;
   border-radius: 99px;
   font-size: 0.72rem;
   font-weight: 700;
-  letter-spacing: 0.03em;
 }
 .badge-dispo { background: rgba(16,185,129,0.15); color: #34d399; }
 .badge-indispo { background: rgba(239,68,68,0.15); color: #f87171; }
+.badge-block { background: rgba(245,158,11,0.15); color: #fbbf24; }
 .badge-err { background: rgba(107,114,128,0.15); color: #9ca3af; }
 
-/* TABS PANELS */
 .city-panel { display: none; }
 .city-panel.active { display: block; }
 
-/* FOOTER */
 footer {
   text-align: center;
   padding: 28px;
@@ -297,29 +284,6 @@ footer {
   font-size: 0.78rem;
   border-top: 1px solid var(--border);
   margin-top: 16px;
-}
-
-/* LEGEND */
-.hm-legend {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  margin-top: 12px;
-  font-size: 0.72rem;
-  color: var(--text3);
-}
-.hm-legend-bar {
-  height: 10px;
-  flex: 1;
-  max-width: 180px;
-  border-radius: 99px;
-  background: linear-gradient(90deg, #1a3a1a, #f87171);
-}
-
-@media (max-width: 600px) {
-  header { padding: 20px 16px; }
-  main { padding: 20px 12px; }
-  .heatmap-table td { width: 22px; height: 22px; font-size: 0; }
 }
 </style>
 </head>
@@ -334,14 +298,13 @@ footer {
     </div>
   </div>
   <div class="header-meta">
-    <strong>Mis à jour le 29/07/2026 à 16:16</strong>
+    <strong>Dernière mise à jour (France) : 29/07/2026 à 16:18:57</strong>
     Scan automatisé toutes les 10 min • 11h–21h
   </div>
 </header>
 
 <main>
 
-<!-- TABS -->
 <div class="tabs" id="cityTabs">
 <button class="tab-btn active" onclick="showCity('Lesneven')" id="tab-0" style="color:#6366f1;border-color:#6366f1">Lesneven</button>
 <button class="tab-btn " onclick="showCity('Landivisiau')" id="tab-1" style="">Landivisiau</button>
@@ -349,22 +312,42 @@ footer {
 </div>
 <div class="city-panel active" id="panel-0" data-city="Lesneven">
 <div class="stat-grid">
-<div class="stat-card stat-total"><div class="value" style="color:#6366f1">26</div><div class="label">Scans total</div></div>
-<div class="stat-card stat-dispo"><div class="value">24</div><div class="label">✅ Disponible</div></div>
+<div class="stat-card"><div class="value" style="color:#6366f1">27</div><div class="label">Scans réussis</div></div>
+<div class="stat-card stat-dispo"><div class="value">25</div><div class="label">✅ Disponible</div></div>
 <div class="stat-card stat-indispo"><div class="value">2</div><div class="label">⚠️ Indisponible</div></div>
-<div class="stat-card"><div class="value" style="color:#f87171">7.7%</div><div class="label">Taux pénurie</div></div>
+<div class="stat-card"><div class="value" style="color:#f87171">7.4%</div><div class="label">Taux pénurie</div></div>
 </div>
 <div class="section-title">🎯 Créneaux de pénurie les plus fréquents</div>
 <div class="best-slots"><div class="slot-list">
 <div class="slot-item">
-  <div class="slot-badge" style="color:#6366f1">Lundi 18h–19h</div>
+  <div class="slot-badge" style="color:#6366f1">Mercredi 15h–16h</div>
+  <div class="slot-bar-wrap"><div class="slot-bar" style="width:0%"></div></div>
+  <div class="slot-pct">0%</div>
+</div>
+<div class="slot-item">
+  <div class="slot-badge" style="color:#6366f1">Mercredi 13h–14h</div>
+  <div class="slot-bar-wrap"><div class="slot-bar" style="width:0%"></div></div>
+  <div class="slot-pct">0%</div>
+</div>
+<div class="slot-item">
+  <div class="slot-badge" style="color:#6366f1">Mardi 22h–23h</div>
+  <div class="slot-bar-wrap"><div class="slot-bar" style="width:0%"></div></div>
+  <div class="slot-pct">0%</div>
+</div>
+<div class="slot-item">
+  <div class="slot-badge" style="color:#6366f1">Mardi 20h–21h</div>
+  <div class="slot-bar-wrap"><div class="slot-bar" style="width:0%"></div></div>
+  <div class="slot-pct">0%</div>
+</div>
+<div class="slot-item">
+  <div class="slot-badge" style="color:#6366f1">Mardi 19h–20h</div>
   <div class="slot-bar-wrap"><div class="slot-bar" style="width:0%"></div></div>
   <div class="slot-pct">0%</div>
 </div>
 </div></div>
 <div class="section-title">🔥 Carte de chaleur — Taux de pénurie par heure</div>
 <div class="heatmap-wrap">
-<div class="heatmap-title">Plus c'est rouge, plus il y a de pénurie de livreurs (idéal pour toi !)</div>
+<div class="heatmap-title">Taux d'indisponibilité par jour et par heure (Heure de Paris)</div>
 <table class="heatmap-table"><thead><tr><th></th><th>00</th><th>01</th><th>02</th><th>03</th><th>04</th><th>05</th><th>06</th><th>07</th><th>08</th><th>09</th><th>10</th><th>11</th><th>12</th><th>13</th><th>14</th><th>15</th><th>16</th><th>17</th><th>18</th><th>19</th><th>20</th><th>21</th><th>22</th><th>23</th></tr></thead><tbody>
 <tr><td class="hm-day">Lundi</td><td class="hm-null" title="Aucune donnée">·</td><td class="hm-null" title="Aucune donnée">·</td><td class="hm-null" title="Aucune donnée">·</td><td class="hm-null" title="Aucune donnée">·</td><td class="hm-null" title="Aucune donnée">·</td><td class="hm-null" title="Aucune donnée">·</td><td class="hm-null" title="Aucune donnée">·</td><td class="hm-null" title="Aucune donnée">·</td><td class="hm-null" title="Aucune donnée">·</td><td class="hm-null" title="Aucune donnée">·</td><td class="hm-null" title="Aucune donnée">·</td><td class="hm-null" title="Aucune donnée">·</td><td class="hm-null" title="Aucune donnée">·</td><td class="hm-null" title="Aucune donnée">·</td><td class="hm-null" title="Aucune donnée">·</td><td class="hm-null" title="Aucune donnée">·</td><td class="hm-null" title="Aucune donnée">·</td><td class="hm-null" title="Aucune donnée">·</td><td style="background:rgb(16,185,129);color:rgba(255,255,255,0.8)" title="Lundi 18h : 0% pénurie">0</td><td style="background:rgb(16,185,129);color:rgba(255,255,255,0.8)" title="Lundi 19h : 0% pénurie">0</td><td style="background:rgb(16,185,129);color:rgba(255,255,255,0.8)" title="Lundi 20h : 0% pénurie">0</td><td class="hm-null" title="Aucune donnée">·</td><td style="background:rgb(16,185,129);color:rgba(255,255,255,0.8)" title="Lundi 22h : 0% pénurie">0</td><td class="hm-null" title="Aucune donnée">·</td></tr>
 <tr><td class="hm-day">Mardi</td><td class="hm-null" title="Aucune donnée">·</td><td class="hm-null" title="Aucune donnée">·</td><td class="hm-null" title="Aucune donnée">·</td><td class="hm-null" title="Aucune donnée">·</td><td class="hm-null" title="Aucune donnée">·</td><td class="hm-null" title="Aucune donnée">·</td><td class="hm-null" title="Aucune donnée">·</td><td class="hm-null" title="Aucune donnée">·</td><td class="hm-null" title="Aucune donnée">·</td><td class="hm-null" title="Aucune donnée">·</td><td class="hm-null" title="Aucune donnée">·</td><td class="hm-null" title="Aucune donnée">·</td><td class="hm-null" title="Aucune donnée">·</td><td style="background:rgb(16,185,129);color:rgba(255,255,255,0.8)" title="Mardi 13h : 0% pénurie">0</td><td class="hm-null" title="Aucune donnée">·</td><td style="background:rgb(16,185,129);color:rgba(255,255,255,0.8)" title="Mardi 15h : 0% pénurie">0</td><td class="hm-null" title="Aucune donnée">·</td><td style="background:rgb(16,185,129);color:rgba(255,255,255,0.8)" title="Mardi 17h : 0% pénurie">0</td><td class="hm-null" title="Aucune donnée">·</td><td style="background:rgb(16,185,129);color:rgba(255,255,255,0.8)" title="Mardi 19h : 0% pénurie">0</td><td style="background:rgb(16,185,129);color:rgba(255,255,255,0.8)" title="Mardi 20h : 0% pénurie">0</td><td class="hm-null" title="Aucune donnée">·</td><td style="background:rgb(16,185,129);color:rgba(255,255,255,0.8)" title="Mardi 22h : 0% pénurie">0</td><td class="hm-null" title="Aucune donnée">·</td></tr>
@@ -374,27 +357,46 @@ footer {
 <tr><td class="hm-day">Samedi</td><td class="hm-null" title="Aucune donnée">·</td><td class="hm-null" title="Aucune donnée">·</td><td class="hm-null" title="Aucune donnée">·</td><td class="hm-null" title="Aucune donnée">·</td><td class="hm-null" title="Aucune donnée">·</td><td class="hm-null" title="Aucune donnée">·</td><td class="hm-null" title="Aucune donnée">·</td><td class="hm-null" title="Aucune donnée">·</td><td class="hm-null" title="Aucune donnée">·</td><td class="hm-null" title="Aucune donnée">·</td><td class="hm-null" title="Aucune donnée">·</td><td class="hm-null" title="Aucune donnée">·</td><td class="hm-null" title="Aucune donnée">·</td><td class="hm-null" title="Aucune donnée">·</td><td class="hm-null" title="Aucune donnée">·</td><td class="hm-null" title="Aucune donnée">·</td><td class="hm-null" title="Aucune donnée">·</td><td class="hm-null" title="Aucune donnée">·</td><td class="hm-null" title="Aucune donnée">·</td><td class="hm-null" title="Aucune donnée">·</td><td class="hm-null" title="Aucune donnée">·</td><td class="hm-null" title="Aucune donnée">·</td><td class="hm-null" title="Aucune donnée">·</td><td class="hm-null" title="Aucune donnée">·</td></tr>
 <tr><td class="hm-day">Dimanche</td><td class="hm-null" title="Aucune donnée">·</td><td class="hm-null" title="Aucune donnée">·</td><td class="hm-null" title="Aucune donnée">·</td><td class="hm-null" title="Aucune donnée">·</td><td class="hm-null" title="Aucune donnée">·</td><td class="hm-null" title="Aucune donnée">·</td><td class="hm-null" title="Aucune donnée">·</td><td class="hm-null" title="Aucune donnée">·</td><td class="hm-null" title="Aucune donnée">·</td><td class="hm-null" title="Aucune donnée">·</td><td class="hm-null" title="Aucune donnée">·</td><td class="hm-null" title="Aucune donnée">·</td><td class="hm-null" title="Aucune donnée">·</td><td class="hm-null" title="Aucune donnée">·</td><td class="hm-null" title="Aucune donnée">·</td><td class="hm-null" title="Aucune donnée">·</td><td class="hm-null" title="Aucune donnée">·</td><td class="hm-null" title="Aucune donnée">·</td><td class="hm-null" title="Aucune donnée">·</td><td class="hm-null" title="Aucune donnée">·</td><td class="hm-null" title="Aucune donnée">·</td><td class="hm-null" title="Aucune donnée">·</td><td class="hm-null" title="Aucune donnée">·</td><td class="hm-null" title="Aucune donnée">·</td></tr>
 </tbody></table>
-<div class="hm-legend"><span>Disponible</span><div class="hm-legend-bar"></div><span>Pénurie 100%</span></div>
 </div>
 </div>
 <div class="city-panel " id="panel-1" data-city="Landivisiau">
 <div class="stat-grid">
-<div class="stat-card stat-total"><div class="value" style="color:#f59e0b">25</div><div class="label">Scans total</div></div>
-<div class="stat-card stat-dispo"><div class="value">21</div><div class="label">✅ Disponible</div></div>
+<div class="stat-card"><div class="value" style="color:#f59e0b">26</div><div class="label">Scans réussis</div></div>
+<div class="stat-card stat-dispo"><div class="value">22</div><div class="label">✅ Disponible</div></div>
 <div class="stat-card stat-indispo"><div class="value">4</div><div class="label">⚠️ Indisponible</div></div>
-<div class="stat-card"><div class="value" style="color:#f87171">16.0%</div><div class="label">Taux pénurie</div></div>
+<div class="stat-card"><div class="value" style="color:#f87171">15.4%</div><div class="label">Taux pénurie</div></div>
 </div>
 <div class="section-title">🎯 Créneaux de pénurie les plus fréquents</div>
 <div class="best-slots"><div class="slot-list">
 <div class="slot-item">
-  <div class="slot-badge" style="color:#f59e0b">Lundi 18h–19h</div>
+  <div class="slot-badge" style="color:#f59e0b">Mercredi 15h–16h</div>
+  <div class="slot-bar-wrap"><div class="slot-bar" style="width:0%"></div></div>
+  <div class="slot-pct">0%</div>
+</div>
+<div class="slot-item">
+  <div class="slot-badge" style="color:#f59e0b">Mercredi 13h–14h</div>
+  <div class="slot-bar-wrap"><div class="slot-bar" style="width:0%"></div></div>
+  <div class="slot-pct">0%</div>
+</div>
+<div class="slot-item">
+  <div class="slot-badge" style="color:#f59e0b">Mardi 22h–23h</div>
+  <div class="slot-bar-wrap"><div class="slot-bar" style="width:0%"></div></div>
+  <div class="slot-pct">0%</div>
+</div>
+<div class="slot-item">
+  <div class="slot-badge" style="color:#f59e0b">Mardi 20h–21h</div>
+  <div class="slot-bar-wrap"><div class="slot-bar" style="width:0%"></div></div>
+  <div class="slot-pct">0%</div>
+</div>
+<div class="slot-item">
+  <div class="slot-badge" style="color:#f59e0b">Mardi 19h–20h</div>
   <div class="slot-bar-wrap"><div class="slot-bar" style="width:0%"></div></div>
   <div class="slot-pct">0%</div>
 </div>
 </div></div>
 <div class="section-title">🔥 Carte de chaleur — Taux de pénurie par heure</div>
 <div class="heatmap-wrap">
-<div class="heatmap-title">Plus c'est rouge, plus il y a de pénurie de livreurs (idéal pour toi !)</div>
+<div class="heatmap-title">Taux d'indisponibilité par jour et par heure (Heure de Paris)</div>
 <table class="heatmap-table"><thead><tr><th></th><th>00</th><th>01</th><th>02</th><th>03</th><th>04</th><th>05</th><th>06</th><th>07</th><th>08</th><th>09</th><th>10</th><th>11</th><th>12</th><th>13</th><th>14</th><th>15</th><th>16</th><th>17</th><th>18</th><th>19</th><th>20</th><th>21</th><th>22</th><th>23</th></tr></thead><tbody>
 <tr><td class="hm-day">Lundi</td><td class="hm-null" title="Aucune donnée">·</td><td class="hm-null" title="Aucune donnée">·</td><td class="hm-null" title="Aucune donnée">·</td><td class="hm-null" title="Aucune donnée">·</td><td class="hm-null" title="Aucune donnée">·</td><td class="hm-null" title="Aucune donnée">·</td><td class="hm-null" title="Aucune donnée">·</td><td class="hm-null" title="Aucune donnée">·</td><td class="hm-null" title="Aucune donnée">·</td><td class="hm-null" title="Aucune donnée">·</td><td class="hm-null" title="Aucune donnée">·</td><td class="hm-null" title="Aucune donnée">·</td><td class="hm-null" title="Aucune donnée">·</td><td class="hm-null" title="Aucune donnée">·</td><td class="hm-null" title="Aucune donnée">·</td><td class="hm-null" title="Aucune donnée">·</td><td class="hm-null" title="Aucune donnée">·</td><td class="hm-null" title="Aucune donnée">·</td><td style="background:rgb(16,185,129);color:rgba(255,255,255,0.8)" title="Lundi 18h : 0% pénurie">0</td><td style="background:rgb(16,185,129);color:rgba(255,255,255,0.8)" title="Lundi 19h : 0% pénurie">0</td><td style="background:rgb(16,185,129);color:rgba(255,255,255,0.8)" title="Lundi 20h : 0% pénurie">0</td><td class="hm-null" title="Aucune donnée">·</td><td style="background:rgb(16,185,129);color:rgba(255,255,255,0.8)" title="Lundi 22h : 0% pénurie">0</td><td class="hm-null" title="Aucune donnée">·</td></tr>
 <tr><td class="hm-day">Mardi</td><td class="hm-null" title="Aucune donnée">·</td><td class="hm-null" title="Aucune donnée">·</td><td class="hm-null" title="Aucune donnée">·</td><td class="hm-null" title="Aucune donnée">·</td><td class="hm-null" title="Aucune donnée">·</td><td class="hm-null" title="Aucune donnée">·</td><td class="hm-null" title="Aucune donnée">·</td><td class="hm-null" title="Aucune donnée">·</td><td class="hm-null" title="Aucune donnée">·</td><td class="hm-null" title="Aucune donnée">·</td><td class="hm-null" title="Aucune donnée">·</td><td class="hm-null" title="Aucune donnée">·</td><td class="hm-null" title="Aucune donnée">·</td><td style="background:rgb(16,185,129);color:rgba(255,255,255,0.8)" title="Mardi 13h : 0% pénurie">0</td><td class="hm-null" title="Aucune donnée">·</td><td style="background:rgb(16,185,129);color:rgba(255,255,255,0.8)" title="Mardi 15h : 0% pénurie">0</td><td class="hm-null" title="Aucune donnée">·</td><td style="background:rgb(16,185,129);color:rgba(255,255,255,0.8)" title="Mardi 17h : 0% pénurie">0</td><td class="hm-null" title="Aucune donnée">·</td><td style="background:rgb(16,185,129);color:rgba(255,255,255,0.8)" title="Mardi 19h : 0% pénurie">0</td><td style="background:rgb(16,185,129);color:rgba(255,255,255,0.8)" title="Mardi 20h : 0% pénurie">0</td><td class="hm-null" title="Aucune donnée">·</td><td style="background:rgb(16,185,129);color:rgba(255,255,255,0.8)" title="Mardi 22h : 0% pénurie">0</td><td class="hm-null" title="Aucune donnée">·</td></tr>
@@ -404,15 +406,14 @@ footer {
 <tr><td class="hm-day">Samedi</td><td class="hm-null" title="Aucune donnée">·</td><td class="hm-null" title="Aucune donnée">·</td><td class="hm-null" title="Aucune donnée">·</td><td class="hm-null" title="Aucune donnée">·</td><td class="hm-null" title="Aucune donnée">·</td><td class="hm-null" title="Aucune donnée">·</td><td class="hm-null" title="Aucune donnée">·</td><td class="hm-null" title="Aucune donnée">·</td><td class="hm-null" title="Aucune donnée">·</td><td class="hm-null" title="Aucune donnée">·</td><td class="hm-null" title="Aucune donnée">·</td><td class="hm-null" title="Aucune donnée">·</td><td class="hm-null" title="Aucune donnée">·</td><td class="hm-null" title="Aucune donnée">·</td><td class="hm-null" title="Aucune donnée">·</td><td class="hm-null" title="Aucune donnée">·</td><td class="hm-null" title="Aucune donnée">·</td><td class="hm-null" title="Aucune donnée">·</td><td class="hm-null" title="Aucune donnée">·</td><td class="hm-null" title="Aucune donnée">·</td><td class="hm-null" title="Aucune donnée">·</td><td class="hm-null" title="Aucune donnée">·</td><td class="hm-null" title="Aucune donnée">·</td><td class="hm-null" title="Aucune donnée">·</td></tr>
 <tr><td class="hm-day">Dimanche</td><td class="hm-null" title="Aucune donnée">·</td><td class="hm-null" title="Aucune donnée">·</td><td class="hm-null" title="Aucune donnée">·</td><td class="hm-null" title="Aucune donnée">·</td><td class="hm-null" title="Aucune donnée">·</td><td class="hm-null" title="Aucune donnée">·</td><td class="hm-null" title="Aucune donnée">·</td><td class="hm-null" title="Aucune donnée">·</td><td class="hm-null" title="Aucune donnée">·</td><td class="hm-null" title="Aucune donnée">·</td><td class="hm-null" title="Aucune donnée">·</td><td class="hm-null" title="Aucune donnée">·</td><td class="hm-null" title="Aucune donnée">·</td><td class="hm-null" title="Aucune donnée">·</td><td class="hm-null" title="Aucune donnée">·</td><td class="hm-null" title="Aucune donnée">·</td><td class="hm-null" title="Aucune donnée">·</td><td class="hm-null" title="Aucune donnée">·</td><td class="hm-null" title="Aucune donnée">·</td><td class="hm-null" title="Aucune donnée">·</td><td class="hm-null" title="Aucune donnée">·</td><td class="hm-null" title="Aucune donnée">·</td><td class="hm-null" title="Aucune donnée">·</td><td class="hm-null" title="Aucune donnée">·</td></tr>
 </tbody></table>
-<div class="hm-legend"><span>Disponible</span><div class="hm-legend-bar"></div><span>Pénurie 100%</span></div>
 </div>
 </div>
 <div class="city-panel " id="panel-2" data-city="Saint-Pol-de-Léon">
 <div class="stat-grid">
-<div class="stat-card stat-total"><div class="value" style="color:#10b981">26</div><div class="label">Scans total</div></div>
-<div class="stat-card stat-dispo"><div class="value">21</div><div class="label">✅ Disponible</div></div>
+<div class="stat-card"><div class="value" style="color:#10b981">27</div><div class="label">Scans réussis</div></div>
+<div class="stat-card stat-dispo"><div class="value">22</div><div class="label">✅ Disponible</div></div>
 <div class="stat-card stat-indispo"><div class="value">5</div><div class="label">⚠️ Indisponible</div></div>
-<div class="stat-card"><div class="value" style="color:#f87171">19.2%</div><div class="label">Taux pénurie</div></div>
+<div class="stat-card"><div class="value" style="color:#f87171">18.5%</div><div class="label">Taux pénurie</div></div>
 </div>
 <div class="section-title">🎯 Créneaux de pénurie les plus fréquents</div>
 <div class="best-slots"><div class="slot-list">
@@ -421,10 +422,30 @@ footer {
   <div class="slot-bar-wrap"><div class="slot-bar" style="width:60%"></div></div>
   <div class="slot-pct">60%</div>
 </div>
+<div class="slot-item">
+  <div class="slot-badge" style="color:#10b981">Mercredi 15h–16h</div>
+  <div class="slot-bar-wrap"><div class="slot-bar" style="width:0%"></div></div>
+  <div class="slot-pct">0%</div>
+</div>
+<div class="slot-item">
+  <div class="slot-badge" style="color:#10b981">Mercredi 13h–14h</div>
+  <div class="slot-bar-wrap"><div class="slot-bar" style="width:0%"></div></div>
+  <div class="slot-pct">0%</div>
+</div>
+<div class="slot-item">
+  <div class="slot-badge" style="color:#10b981">Mardi 22h–23h</div>
+  <div class="slot-bar-wrap"><div class="slot-bar" style="width:0%"></div></div>
+  <div class="slot-pct">0%</div>
+</div>
+<div class="slot-item">
+  <div class="slot-badge" style="color:#10b981">Mardi 20h–21h</div>
+  <div class="slot-bar-wrap"><div class="slot-bar" style="width:0%"></div></div>
+  <div class="slot-pct">0%</div>
+</div>
 </div></div>
 <div class="section-title">🔥 Carte de chaleur — Taux de pénurie par heure</div>
 <div class="heatmap-wrap">
-<div class="heatmap-title">Plus c'est rouge, plus il y a de pénurie de livreurs (idéal pour toi !)</div>
+<div class="heatmap-title">Taux d'indisponibilité par jour et par heure (Heure de Paris)</div>
 <table class="heatmap-table"><thead><tr><th></th><th>00</th><th>01</th><th>02</th><th>03</th><th>04</th><th>05</th><th>06</th><th>07</th><th>08</th><th>09</th><th>10</th><th>11</th><th>12</th><th>13</th><th>14</th><th>15</th><th>16</th><th>17</th><th>18</th><th>19</th><th>20</th><th>21</th><th>22</th><th>23</th></tr></thead><tbody>
 <tr><td class="hm-day">Lundi</td><td class="hm-null" title="Aucune donnée">·</td><td class="hm-null" title="Aucune donnée">·</td><td class="hm-null" title="Aucune donnée">·</td><td class="hm-null" title="Aucune donnée">·</td><td class="hm-null" title="Aucune donnée">·</td><td class="hm-null" title="Aucune donnée">·</td><td class="hm-null" title="Aucune donnée">·</td><td class="hm-null" title="Aucune donnée">·</td><td class="hm-null" title="Aucune donnée">·</td><td class="hm-null" title="Aucune donnée">·</td><td class="hm-null" title="Aucune donnée">·</td><td class="hm-null" title="Aucune donnée">·</td><td class="hm-null" title="Aucune donnée">·</td><td class="hm-null" title="Aucune donnée">·</td><td class="hm-null" title="Aucune donnée">·</td><td class="hm-null" title="Aucune donnée">·</td><td class="hm-null" title="Aucune donnée">·</td><td class="hm-null" title="Aucune donnée">·</td><td style="background:rgb(155,141,119);color:rgba(255,255,255,0.8)" title="Lundi 18h : 60% pénurie">60</td><td style="background:rgb(16,185,129);color:rgba(255,255,255,0.8)" title="Lundi 19h : 0% pénurie">0</td><td style="background:rgb(16,185,129);color:rgba(255,255,255,0.8)" title="Lundi 20h : 0% pénurie">0</td><td class="hm-null" title="Aucune donnée">·</td><td style="background:rgb(16,185,129);color:rgba(255,255,255,0.8)" title="Lundi 22h : 0% pénurie">0</td><td class="hm-null" title="Aucune donnée">·</td></tr>
 <tr><td class="hm-day">Mardi</td><td class="hm-null" title="Aucune donnée">·</td><td class="hm-null" title="Aucune donnée">·</td><td class="hm-null" title="Aucune donnée">·</td><td class="hm-null" title="Aucune donnée">·</td><td class="hm-null" title="Aucune donnée">·</td><td class="hm-null" title="Aucune donnée">·</td><td class="hm-null" title="Aucune donnée">·</td><td class="hm-null" title="Aucune donnée">·</td><td class="hm-null" title="Aucune donnée">·</td><td class="hm-null" title="Aucune donnée">·</td><td class="hm-null" title="Aucune donnée">·</td><td class="hm-null" title="Aucune donnée">·</td><td class="hm-null" title="Aucune donnée">·</td><td style="background:rgb(16,185,129);color:rgba(255,255,255,0.8)" title="Mardi 13h : 0% pénurie">0</td><td class="hm-null" title="Aucune donnée">·</td><td style="background:rgb(16,185,129);color:rgba(255,255,255,0.8)" title="Mardi 15h : 0% pénurie">0</td><td class="hm-null" title="Aucune donnée">·</td><td style="background:rgb(16,185,129);color:rgba(255,255,255,0.8)" title="Mardi 17h : 0% pénurie">0</td><td class="hm-null" title="Aucune donnée">·</td><td style="background:rgb(16,185,129);color:rgba(255,255,255,0.8)" title="Mardi 19h : 0% pénurie">0</td><td style="background:rgb(16,185,129);color:rgba(255,255,255,0.8)" title="Mardi 20h : 0% pénurie">0</td><td class="hm-null" title="Aucune donnée">·</td><td style="background:rgb(16,185,129);color:rgba(255,255,255,0.8)" title="Mardi 22h : 0% pénurie">0</td><td class="hm-null" title="Aucune donnée">·</td></tr>
@@ -434,77 +455,76 @@ footer {
 <tr><td class="hm-day">Samedi</td><td class="hm-null" title="Aucune donnée">·</td><td class="hm-null" title="Aucune donnée">·</td><td class="hm-null" title="Aucune donnée">·</td><td class="hm-null" title="Aucune donnée">·</td><td class="hm-null" title="Aucune donnée">·</td><td class="hm-null" title="Aucune donnée">·</td><td class="hm-null" title="Aucune donnée">·</td><td class="hm-null" title="Aucune donnée">·</td><td class="hm-null" title="Aucune donnée">·</td><td class="hm-null" title="Aucune donnée">·</td><td class="hm-null" title="Aucune donnée">·</td><td class="hm-null" title="Aucune donnée">·</td><td class="hm-null" title="Aucune donnée">·</td><td class="hm-null" title="Aucune donnée">·</td><td class="hm-null" title="Aucune donnée">·</td><td class="hm-null" title="Aucune donnée">·</td><td class="hm-null" title="Aucune donnée">·</td><td class="hm-null" title="Aucune donnée">·</td><td class="hm-null" title="Aucune donnée">·</td><td class="hm-null" title="Aucune donnée">·</td><td class="hm-null" title="Aucune donnée">·</td><td class="hm-null" title="Aucune donnée">·</td><td class="hm-null" title="Aucune donnée">·</td><td class="hm-null" title="Aucune donnée">·</td></tr>
 <tr><td class="hm-day">Dimanche</td><td class="hm-null" title="Aucune donnée">·</td><td class="hm-null" title="Aucune donnée">·</td><td class="hm-null" title="Aucune donnée">·</td><td class="hm-null" title="Aucune donnée">·</td><td class="hm-null" title="Aucune donnée">·</td><td class="hm-null" title="Aucune donnée">·</td><td class="hm-null" title="Aucune donnée">·</td><td class="hm-null" title="Aucune donnée">·</td><td class="hm-null" title="Aucune donnée">·</td><td class="hm-null" title="Aucune donnée">·</td><td class="hm-null" title="Aucune donnée">·</td><td class="hm-null" title="Aucune donnée">·</td><td class="hm-null" title="Aucune donnée">·</td><td class="hm-null" title="Aucune donnée">·</td><td class="hm-null" title="Aucune donnée">·</td><td class="hm-null" title="Aucune donnée">·</td><td class="hm-null" title="Aucune donnée">·</td><td class="hm-null" title="Aucune donnée">·</td><td class="hm-null" title="Aucune donnée">·</td><td class="hm-null" title="Aucune donnée">·</td><td class="hm-null" title="Aucune donnée">·</td><td class="hm-null" title="Aucune donnée">·</td><td class="hm-null" title="Aucune donnée">·</td><td class="hm-null" title="Aucune donnée">·</td></tr>
 </tbody></table>
-<div class="hm-legend"><span>Disponible</span><div class="hm-legend-bar"></div><span>Pénurie 100%</span></div>
 </div>
 </div>
-<div class="section-title">🕐 Derniers scans</div>
-<div class="recent-wrap"><table class="recent-table"><thead><tr><th>Heure (Paris)</th><th>Ville</th><th>Statut</th><th>Détail</th></tr></thead><tbody>
-<tr><td style="color:var(--text2)">29/07 15:13</td><td><strong style="color:#f59e0b">Landivisiau</strong></td><td><span class="badge badge-dispo">✅ Disponible</span></td><td style="color:var(--text3);font-size:0.8rem">—</td></tr>
-<tr><td style="color:var(--text2)">29/07 15:13</td><td><strong style="color:#10b981">Saint-Pol-de-Léon</strong></td><td><span class="badge badge-dispo">✅ Disponible</span></td><td style="color:var(--text3);font-size:0.8rem">—</td></tr>
-<tr><td style="color:var(--text2)">29/07 15:13</td><td><strong style="color:#6366f1">Lesneven</strong></td><td><span class="badge badge-dispo">✅ Disponible</span></td><td style="color:var(--text3);font-size:0.8rem">—</td></tr>
-<tr><td style="color:var(--text2)">29/07 13:20</td><td><strong style="color:#6366f1">Lesneven</strong></td><td><span class="badge badge-dispo">✅ Disponible</span></td><td style="color:var(--text3);font-size:0.8rem">—</td></tr>
-<tr><td style="color:var(--text2)">29/07 13:20</td><td><strong style="color:#f59e0b">Landivisiau</strong></td><td><span class="badge badge-dispo">✅ Disponible</span></td><td style="color:var(--text3);font-size:0.8rem">—</td></tr>
-<tr><td style="color:var(--text2)">29/07 13:20</td><td><strong style="color:#10b981">Saint-Pol-de-Léon</strong></td><td><span class="badge badge-dispo">✅ Disponible</span></td><td style="color:var(--text3);font-size:0.8rem">—</td></tr>
-<tr><td style="color:var(--text2)">2026-07-29 14:16:03Z</td><td><strong style="color:#10b981">Saint-Pol-de-Léon</strong></td><td><span class="badge badge-dispo">✅ Disponible</span></td><td style="color:var(--text3);font-size:0.8rem">—</td></tr>
-<tr><td style="color:var(--text2)">2026-07-29 14:15:59Z</td><td><strong style="color:#f59e0b">Landivisiau</strong></td><td><span class="badge badge-dispo">✅ Disponible</span></td><td style="color:var(--text3);font-size:0.8rem">—</td></tr>
-<tr><td style="color:var(--text2)">2026-07-29 14:15:55Z</td><td><strong style="color:#6366f1">Lesneven</strong></td><td><span class="badge badge-dispo">✅ Disponible</span></td><td style="color:var(--text3);font-size:0.8rem">—</td></tr>
-<tr><td style="color:var(--text2)">2026-07-29 14:12:38Z</td><td><strong style="color:#10b981">Saint-Pol-de-Léon</strong></td><td><span class="badge badge-dispo">✅ Disponible</span></td><td style="color:var(--text3);font-size:0.8rem">—</td></tr>
-<tr><td style="color:var(--text2)">2026-07-29 14:12:31Z</td><td><strong style="color:#f59e0b">Landivisiau</strong></td><td><span class="badge badge-indispo">⚠️ Indisponible</span></td><td style="color:var(--text3);font-size:0.8rem">indisponible</td></tr>
-<tr><td style="color:var(--text2)">2026-07-29 14:12:23Z</td><td><strong style="color:#6366f1">Lesneven</strong></td><td><span class="badge badge-dispo">✅ Disponible</span></td><td style="color:var(--text3);font-size:0.8rem">—</td></tr>
-<tr><td style="color:var(--text2)">2026-07-29 14:08:04Z</td><td><strong style="color:#10b981">Saint-Pol-de-Léon</strong></td><td><span class="badge badge-dispo">✅ Disponible</span></td><td style="color:var(--text3);font-size:0.8rem">—</td></tr>
-<tr><td style="color:var(--text2)">2026-07-29 14:07:57Z</td><td><strong style="color:#f59e0b">Landivisiau</strong></td><td><span class="badge badge-indispo">⚠️ Indisponible</span></td><td style="color:var(--text3);font-size:0.8rem">indisponible</td></tr>
-<tr><td style="color:var(--text2)">2026-07-29 14:07:48Z</td><td><strong style="color:#6366f1">Lesneven</strong></td><td><span class="badge badge-dispo">✅ Disponible</span></td><td style="color:var(--text3);font-size:0.8rem">—</td></tr>
-<tr><td style="color:var(--text2)">28/07 22:06</td><td><strong style="color:#6366f1">Lesneven</strong></td><td><span class="badge badge-dispo">✅ Disponible</span></td><td style="color:var(--text3);font-size:0.8rem">—</td></tr>
-<tr><td style="color:var(--text2)">28/07 22:06</td><td><strong style="color:#f59e0b">Landivisiau</strong></td><td><span class="badge badge-dispo">✅ Disponible</span></td><td style="color:var(--text3);font-size:0.8rem">—</td></tr>
-<tr><td style="color:var(--text2)">28/07 22:06</td><td><strong style="color:#10b981">Saint-Pol-de-Léon</strong></td><td><span class="badge badge-dispo">✅ Disponible</span></td><td style="color:var(--text3);font-size:0.8rem">—</td></tr>
-<tr><td style="color:var(--text2)">28/07 20:39</td><td><strong style="color:#10b981">Saint-Pol-de-Léon</strong></td><td><span class="badge badge-dispo">✅ Disponible</span></td><td style="color:var(--text3);font-size:0.8rem">—</td></tr>
-<tr><td style="color:var(--text2)">28/07 20:39</td><td><strong style="color:#6366f1">Lesneven</strong></td><td><span class="badge badge-dispo">✅ Disponible</span></td><td style="color:var(--text3);font-size:0.8rem">—</td></tr>
-<tr><td style="color:var(--text2)">28/07 20:39</td><td><strong style="color:#f59e0b">Landivisiau</strong></td><td><span class="badge badge-dispo">✅ Disponible</span></td><td style="color:var(--text3);font-size:0.8rem">—</td></tr>
-<tr><td style="color:var(--text2)">28/07 19:01</td><td><strong style="color:#f59e0b">Landivisiau</strong></td><td><span class="badge badge-dispo">✅ Disponible</span></td><td style="color:var(--text3);font-size:0.8rem">—</td></tr>
-<tr><td style="color:var(--text2)">28/07 19:01</td><td><strong style="color:#10b981">Saint-Pol-de-Léon</strong></td><td><span class="badge badge-dispo">✅ Disponible</span></td><td style="color:var(--text3);font-size:0.8rem">—</td></tr>
-<tr><td style="color:var(--text2)">28/07 19:01</td><td><strong style="color:#6366f1">Lesneven</strong></td><td><span class="badge badge-dispo">✅ Disponible</span></td><td style="color:var(--text3);font-size:0.8rem">—</td></tr>
-<tr><td style="color:var(--text2)">28/07 17:29</td><td><strong style="color:#6366f1">Lesneven</strong></td><td><span class="badge badge-dispo">✅ Disponible</span></td><td style="color:var(--text3);font-size:0.8rem">—</td></tr>
-<tr><td style="color:var(--text2)">28/07 17:29</td><td><strong style="color:#f59e0b">Landivisiau</strong></td><td><span class="badge badge-dispo">✅ Disponible</span></td><td style="color:var(--text3);font-size:0.8rem">—</td></tr>
-<tr><td style="color:var(--text2)">28/07 17:29</td><td><strong style="color:#10b981">Saint-Pol-de-Léon</strong></td><td><span class="badge badge-dispo">✅ Disponible</span></td><td style="color:var(--text3);font-size:0.8rem">—</td></tr>
-<tr><td style="color:var(--text2)">28/07 15:02</td><td><strong style="color:#6366f1">Lesneven</strong></td><td><span class="badge badge-dispo">✅ Disponible</span></td><td style="color:var(--text3);font-size:0.8rem">—</td></tr>
-<tr><td style="color:var(--text2)">28/07 15:02</td><td><strong style="color:#f59e0b">Landivisiau</strong></td><td><span class="badge badge-dispo">✅ Disponible</span></td><td style="color:var(--text3);font-size:0.8rem">—</td></tr>
-<tr><td style="color:var(--text2)">28/07 15:02</td><td><strong style="color:#10b981">Saint-Pol-de-Léon</strong></td><td><span class="badge badge-dispo">✅ Disponible</span></td><td style="color:var(--text3);font-size:0.8rem">—</td></tr>
-<tr><td style="color:var(--text2)">28/07 13:12</td><td><strong style="color:#10b981">Saint-Pol-de-Léon</strong></td><td><span class="badge badge-dispo">✅ Disponible</span></td><td style="color:var(--text3);font-size:0.8rem">—</td></tr>
-<tr><td style="color:var(--text2)">28/07 13:12</td><td><strong style="color:#6366f1">Lesneven</strong></td><td><span class="badge badge-dispo">✅ Disponible</span></td><td style="color:var(--text3);font-size:0.8rem">—</td></tr>
-<tr><td style="color:var(--text2)">28/07 13:12</td><td><strong style="color:#f59e0b">Landivisiau</strong></td><td><span class="badge badge-dispo">✅ Disponible</span></td><td style="color:var(--text3);font-size:0.8rem">—</td></tr>
-<tr><td style="color:var(--text2)">27/07 22:11</td><td><strong style="color:#6366f1">Lesneven</strong></td><td><span class="badge badge-dispo">✅ Disponible</span></td><td style="color:var(--text3);font-size:0.8rem">—</td></tr>
-<tr><td style="color:var(--text2)">27/07 22:11</td><td><strong style="color:#f59e0b">Landivisiau</strong></td><td><span class="badge badge-dispo">✅ Disponible</span></td><td style="color:var(--text3);font-size:0.8rem">—</td></tr>
-<tr><td style="color:var(--text2)">27/07 22:11</td><td><strong style="color:#10b981">Saint-Pol-de-Léon</strong></td><td><span class="badge badge-dispo">✅ Disponible</span></td><td style="color:var(--text3);font-size:0.8rem">—</td></tr>
-<tr><td style="color:var(--text2)">27/07 20:49</td><td><strong style="color:#6366f1">Lesneven</strong></td><td><span class="badge badge-dispo">✅ Disponible</span></td><td style="color:var(--text3);font-size:0.8rem">—</td></tr>
-<tr><td style="color:var(--text2)">27/07 20:49</td><td><strong style="color:#f59e0b">Landivisiau</strong></td><td><span class="badge badge-dispo">✅ Disponible</span></td><td style="color:var(--text3);font-size:0.8rem">—</td></tr>
-<tr><td style="color:var(--text2)">27/07 20:49</td><td><strong style="color:#10b981">Saint-Pol-de-Léon</strong></td><td><span class="badge badge-dispo">✅ Disponible</span></td><td style="color:var(--text3);font-size:0.8rem">—</td></tr>
-<tr><td style="color:var(--text2)">27/07 19:12</td><td><strong style="color:#6366f1">Lesneven</strong></td><td><span class="badge badge-dispo">✅ Disponible</span></td><td style="color:var(--text3);font-size:0.8rem">—</td></tr>
-<tr><td style="color:var(--text2)">27/07 19:12</td><td><strong style="color:#f59e0b">Landivisiau</strong></td><td><span class="badge badge-dispo">✅ Disponible</span></td><td style="color:var(--text3);font-size:0.8rem">—</td></tr>
-<tr><td style="color:var(--text2)">27/07 19:12</td><td><strong style="color:#10b981">Saint-Pol-de-Léon</strong></td><td><span class="badge badge-dispo">✅ Disponible</span></td><td style="color:var(--text3);font-size:0.8rem">—</td></tr>
-<tr><td style="color:var(--text2)">27/07 18:49</td><td><strong style="color:#f59e0b">Landivisiau</strong></td><td><span class="badge badge-dispo">✅ Disponible</span></td><td style="color:var(--text3);font-size:0.8rem">—</td></tr>
-<tr><td style="color:var(--text2)">27/07 18:49</td><td><strong style="color:#10b981">Saint-Pol-de-Léon</strong></td><td><span class="badge badge-dispo">✅ Disponible</span></td><td style="color:var(--text3);font-size:0.8rem">—</td></tr>
-<tr><td style="color:var(--text2)">27/07 18:49</td><td><strong style="color:#6366f1">Lesneven</strong></td><td><span class="badge badge-dispo">✅ Disponible</span></td><td style="color:var(--text3);font-size:0.8rem">—</td></tr>
-<tr><td style="color:var(--text2)">27/07 18:47</td><td><strong style="color:#f59e0b">Landivisiau</strong></td><td><span class="badge badge-dispo">✅ Disponible</span></td><td style="color:var(--text3);font-size:0.8rem">—</td></tr>
-<tr><td style="color:var(--text2)">27/07 18:47</td><td><strong style="color:#10b981">Saint-Pol-de-Léon</strong></td><td><span class="badge badge-dispo">✅ Disponible</span></td><td style="color:var(--text3);font-size:0.8rem">—</td></tr>
-<tr><td style="color:var(--text2)">27/07 18:47</td><td><strong style="color:#6366f1">Lesneven</strong></td><td><span class="badge badge-dispo">✅ Disponible</span></td><td style="color:var(--text3);font-size:0.8rem">—</td></tr>
-<tr><td style="color:var(--text2)">27/07 18:42</td><td><strong style="color:#10b981">Saint-Pol-de-Léon</strong></td><td><span class="badge badge-indispo">⚠️ Indisponible</span></td><td style="color:var(--text3);font-size:0.8rem">aucun coursier</td></tr>
-<tr><td style="color:var(--text2)">27/07 18:42</td><td><strong style="color:#f59e0b">Landivisiau</strong></td><td><span class="badge badge-dispo">✅ Disponible</span></td><td style="color:var(--text3);font-size:0.8rem">—</td></tr>
-<tr><td style="color:var(--text2)">27/07 18:41</td><td><strong style="color:#6366f1">Lesneven</strong></td><td><span class="badge badge-dispo">✅ Disponible</span></td><td style="color:var(--text3);font-size:0.8rem">—</td></tr>
-<tr><td style="color:var(--text2)">27/07 18:36</td><td><strong style="color:#10b981">Saint-Pol-de-Léon</strong></td><td><span class="badge badge-indispo">⚠️ Indisponible</span></td><td style="color:var(--text3);font-size:0.8rem">aucun coursier</td></tr>
-<tr><td style="color:var(--text2)">27/07 18:36</td><td><strong style="color:#f59e0b">Landivisiau</strong></td><td><span class="badge badge-dispo">✅ Disponible</span></td><td style="color:var(--text3);font-size:0.8rem">—</td></tr>
-<tr><td style="color:var(--text2)">27/07 18:36</td><td><strong style="color:#6366f1">Lesneven</strong></td><td><span class="badge badge-dispo">✅ Disponible</span></td><td style="color:var(--text3);font-size:0.8rem">—</td></tr>
-<tr><td style="color:var(--text2)">27/07 18:27</td><td><strong style="color:#10b981">Saint-Pol-de-Léon</strong></td><td><span class="badge badge-indispo">⚠️ Indisponible</span></td><td style="color:var(--text3);font-size:0.8rem">aucun coursier</td></tr>
-<tr><td style="color:var(--text2)">27/07 18:26</td><td><strong style="color:#f59e0b">Landivisiau</strong></td><td><span class="badge badge-dispo">✅ Disponible</span></td><td style="color:var(--text3);font-size:0.8rem">—</td></tr>
-<tr><td style="color:var(--text2)">27/07 18:26</td><td><strong style="color:#6366f1">Lesneven</strong></td><td><span class="badge badge-dispo">✅ Disponible</span></td><td style="color:var(--text3);font-size:0.8rem">—</td></tr>
-<tr><td style="color:var(--text2)">27/07 18:19</td><td><strong style="color:#10b981">Saint-Pol-de-Léon</strong></td><td><span class="badge badge-err">❌ Erreur</span></td><td style="color:var(--text3);font-size:0.8rem">Target website responded with 404 - Not Found</td></tr>
-<tr><td style="color:var(--text2)">27/07 18:19</td><td><strong style="color:#f59e0b">Landivisiau</strong></td><td><span class="badge badge-err">❌ Erreur</span></td><td style="color:var(--text3);font-size:0.8rem">Target website responded with 404 - Not Found</td></tr>
-<tr><td style="color:var(--text2)">27/07 18:19</td><td><strong style="color:#6366f1">Lesneven</strong></td><td><span class="badge badge-err">❌ Erreur</span></td><td style="color:var(--text3);font-size:0.8rem">Target website responded with 404 - Not Found</td></tr>
+<div class="section-title">🕐 Historique des scans récents (Temps Réel)</div>
+<div class="recent-wrap"><table class="recent-table"><thead><tr><th>Heure (Paris)</th><th>Ville</th><th>Statut</th><th>Code HTTP</th><th>Détail</th></tr></thead><tbody>
+<tr><td style="color:var(--text2)">2026-07-29 14:18:57Z</td><td><strong style="color:#10b981">Saint-Pol-de-Léon</strong></td><td><span class="badge badge-block">⚠️ Anti-Bot (403)</span></td><td style="color:var(--text3)">HTTP 403</td><td style="color:var(--text3);font-size:0.8rem">—</td></tr>
+<tr><td style="color:var(--text2)">2026-07-29 14:18:50Z</td><td><strong style="color:#f59e0b">Landivisiau</strong></td><td><span class="badge badge-block">⚠️ Anti-Bot (403)</span></td><td style="color:var(--text3)">HTTP 403</td><td style="color:var(--text3);font-size:0.8rem">—</td></tr>
+<tr><td style="color:var(--text2)">2026-07-29 14:18:44Z</td><td><strong style="color:#6366f1">Lesneven</strong></td><td><span class="badge badge-block">⚠️ Anti-Bot (403)</span></td><td style="color:var(--text3)">HTTP 403</td><td style="color:var(--text3);font-size:0.8rem">—</td></tr>
+<tr><td style="color:var(--text2)">2026-07-29 14:16:03Z</td><td><strong style="color:#10b981">Saint-Pol-de-Léon</strong></td><td><span class="badge badge-block">⚠️ Anti-Bot (403)</span></td><td style="color:var(--text3)">HTTP 403</td><td style="color:var(--text3);font-size:0.8rem">—</td></tr>
+<tr><td style="color:var(--text2)">2026-07-29 14:15:59Z</td><td><strong style="color:#f59e0b">Landivisiau</strong></td><td><span class="badge badge-block">⚠️ Anti-Bot (403)</span></td><td style="color:var(--text3)">HTTP 403</td><td style="color:var(--text3);font-size:0.8rem">—</td></tr>
+<tr><td style="color:var(--text2)">2026-07-29 14:15:55Z</td><td><strong style="color:#6366f1">Lesneven</strong></td><td><span class="badge badge-block">⚠️ Anti-Bot (403)</span></td><td style="color:var(--text3)">HTTP 403</td><td style="color:var(--text3);font-size:0.8rem">—</td></tr>
+<tr><td style="color:var(--text2)">2026-07-29 14:12:38Z</td><td><strong style="color:#10b981">Saint-Pol-de-Léon</strong></td><td><span class="badge badge-block">⚠️ Anti-Bot (403)</span></td><td style="color:var(--text3)">HTTP 403</td><td style="color:var(--text3);font-size:0.8rem">—</td></tr>
+<tr><td style="color:var(--text2)">2026-07-29 14:12:31Z</td><td><strong style="color:#f59e0b">Landivisiau</strong></td><td><span class="badge badge-indispo">🚨 Indisponible</span></td><td style="color:var(--text3)">HTTP 200</td><td style="color:var(--text3);font-size:0.8rem">indisponible</td></tr>
+<tr><td style="color:var(--text2)">2026-07-29 14:12:23Z</td><td><strong style="color:#6366f1">Lesneven</strong></td><td><span class="badge badge-block">⚠️ Anti-Bot (403)</span></td><td style="color:var(--text3)">HTTP 403</td><td style="color:var(--text3);font-size:0.8rem">—</td></tr>
+<tr><td style="color:var(--text2)">2026-07-29 14:08:04Z</td><td><strong style="color:#10b981">Saint-Pol-de-Léon</strong></td><td><span class="badge badge-block">⚠️ Anti-Bot (403)</span></td><td style="color:var(--text3)">HTTP 403</td><td style="color:var(--text3);font-size:0.8rem">—</td></tr>
+<tr><td style="color:var(--text2)">2026-07-29 14:07:57Z</td><td><strong style="color:#f59e0b">Landivisiau</strong></td><td><span class="badge badge-indispo">🚨 Indisponible</span></td><td style="color:var(--text3)">HTTP 200</td><td style="color:var(--text3);font-size:0.8rem">indisponible</td></tr>
+<tr><td style="color:var(--text2)">2026-07-29 14:07:48Z</td><td><strong style="color:#6366f1">Lesneven</strong></td><td><span class="badge badge-block">⚠️ Anti-Bot (403)</span></td><td style="color:var(--text3)">HTTP 403</td><td style="color:var(--text3);font-size:0.8rem">—</td></tr>
+<tr><td style="color:var(--text2)">29/07 à 15:13:26</td><td><strong style="color:#10b981">Saint-Pol-de-Léon</strong></td><td><span class="badge badge-dispo">✅ Disponible</span></td><td style="color:var(--text3)">HTTP 200</td><td style="color:var(--text3);font-size:0.8rem">—</td></tr>
+<tr><td style="color:var(--text2)">29/07 à 15:13:26</td><td><strong style="color:#f59e0b">Landivisiau</strong></td><td><span class="badge badge-dispo">✅ Disponible</span></td><td style="color:var(--text3)">HTTP 200</td><td style="color:var(--text3);font-size:0.8rem">—</td></tr>
+<tr><td style="color:var(--text2)">29/07 à 15:13:25</td><td><strong style="color:#6366f1">Lesneven</strong></td><td><span class="badge badge-dispo">✅ Disponible</span></td><td style="color:var(--text3)">HTTP 200</td><td style="color:var(--text3);font-size:0.8rem">—</td></tr>
+<tr><td style="color:var(--text2)">29/07 à 13:20:47</td><td><strong style="color:#10b981">Saint-Pol-de-Léon</strong></td><td><span class="badge badge-dispo">✅ Disponible</span></td><td style="color:var(--text3)">HTTP 200</td><td style="color:var(--text3);font-size:0.8rem">—</td></tr>
+<tr><td style="color:var(--text2)">29/07 à 13:20:47</td><td><strong style="color:#f59e0b">Landivisiau</strong></td><td><span class="badge badge-dispo">✅ Disponible</span></td><td style="color:var(--text3)">HTTP 200</td><td style="color:var(--text3);font-size:0.8rem">—</td></tr>
+<tr><td style="color:var(--text2)">29/07 à 13:20:47</td><td><strong style="color:#6366f1">Lesneven</strong></td><td><span class="badge badge-dispo">✅ Disponible</span></td><td style="color:var(--text3)">HTTP 200</td><td style="color:var(--text3);font-size:0.8rem">—</td></tr>
+<tr><td style="color:var(--text2)">28/07 à 22:06:37</td><td><strong style="color:#10b981">Saint-Pol-de-Léon</strong></td><td><span class="badge badge-dispo">✅ Disponible</span></td><td style="color:var(--text3)">HTTP 200</td><td style="color:var(--text3);font-size:0.8rem">—</td></tr>
+<tr><td style="color:var(--text2)">28/07 à 22:06:37</td><td><strong style="color:#f59e0b">Landivisiau</strong></td><td><span class="badge badge-dispo">✅ Disponible</span></td><td style="color:var(--text3)">HTTP 200</td><td style="color:var(--text3);font-size:0.8rem">—</td></tr>
+<tr><td style="color:var(--text2)">28/07 à 22:06:37</td><td><strong style="color:#6366f1">Lesneven</strong></td><td><span class="badge badge-dispo">✅ Disponible</span></td><td style="color:var(--text3)">HTTP 200</td><td style="color:var(--text3);font-size:0.8rem">—</td></tr>
+<tr><td style="color:var(--text2)">28/07 à 20:39:08</td><td><strong style="color:#10b981">Saint-Pol-de-Léon</strong></td><td><span class="badge badge-dispo">✅ Disponible</span></td><td style="color:var(--text3)">HTTP 200</td><td style="color:var(--text3);font-size:0.8rem">—</td></tr>
+<tr><td style="color:var(--text2)">28/07 à 20:39:07</td><td><strong style="color:#f59e0b">Landivisiau</strong></td><td><span class="badge badge-dispo">✅ Disponible</span></td><td style="color:var(--text3)">HTTP 200</td><td style="color:var(--text3);font-size:0.8rem">—</td></tr>
+<tr><td style="color:var(--text2)">28/07 à 20:39:07</td><td><strong style="color:#6366f1">Lesneven</strong></td><td><span class="badge badge-dispo">✅ Disponible</span></td><td style="color:var(--text3)">HTTP 200</td><td style="color:var(--text3);font-size:0.8rem">—</td></tr>
+<tr><td style="color:var(--text2)">28/07 à 19:01:03</td><td><strong style="color:#10b981">Saint-Pol-de-Léon</strong></td><td><span class="badge badge-dispo">✅ Disponible</span></td><td style="color:var(--text3)">HTTP 200</td><td style="color:var(--text3);font-size:0.8rem">—</td></tr>
+<tr><td style="color:var(--text2)">28/07 à 19:01:03</td><td><strong style="color:#f59e0b">Landivisiau</strong></td><td><span class="badge badge-dispo">✅ Disponible</span></td><td style="color:var(--text3)">HTTP 200</td><td style="color:var(--text3);font-size:0.8rem">—</td></tr>
+<tr><td style="color:var(--text2)">28/07 à 19:01:02</td><td><strong style="color:#6366f1">Lesneven</strong></td><td><span class="badge badge-dispo">✅ Disponible</span></td><td style="color:var(--text3)">HTTP 200</td><td style="color:var(--text3);font-size:0.8rem">—</td></tr>
+<tr><td style="color:var(--text2)">28/07 à 17:29:26</td><td><strong style="color:#10b981">Saint-Pol-de-Léon</strong></td><td><span class="badge badge-dispo">✅ Disponible</span></td><td style="color:var(--text3)">HTTP 200</td><td style="color:var(--text3);font-size:0.8rem">—</td></tr>
+<tr><td style="color:var(--text2)">28/07 à 17:29:26</td><td><strong style="color:#f59e0b">Landivisiau</strong></td><td><span class="badge badge-dispo">✅ Disponible</span></td><td style="color:var(--text3)">HTTP 200</td><td style="color:var(--text3);font-size:0.8rem">—</td></tr>
+<tr><td style="color:var(--text2)">28/07 à 17:29:26</td><td><strong style="color:#6366f1">Lesneven</strong></td><td><span class="badge badge-dispo">✅ Disponible</span></td><td style="color:var(--text3)">HTTP 200</td><td style="color:var(--text3);font-size:0.8rem">—</td></tr>
+<tr><td style="color:var(--text2)">28/07 à 15:02:59</td><td><strong style="color:#10b981">Saint-Pol-de-Léon</strong></td><td><span class="badge badge-dispo">✅ Disponible</span></td><td style="color:var(--text3)">HTTP 200</td><td style="color:var(--text3);font-size:0.8rem">—</td></tr>
+<tr><td style="color:var(--text2)">28/07 à 15:02:59</td><td><strong style="color:#f59e0b">Landivisiau</strong></td><td><span class="badge badge-dispo">✅ Disponible</span></td><td style="color:var(--text3)">HTTP 200</td><td style="color:var(--text3);font-size:0.8rem">—</td></tr>
+<tr><td style="color:var(--text2)">28/07 à 15:02:59</td><td><strong style="color:#6366f1">Lesneven</strong></td><td><span class="badge badge-dispo">✅ Disponible</span></td><td style="color:var(--text3)">HTTP 200</td><td style="color:var(--text3);font-size:0.8rem">—</td></tr>
+<tr><td style="color:var(--text2)">28/07 à 13:12:48</td><td><strong style="color:#10b981">Saint-Pol-de-Léon</strong></td><td><span class="badge badge-dispo">✅ Disponible</span></td><td style="color:var(--text3)">HTTP 200</td><td style="color:var(--text3);font-size:0.8rem">—</td></tr>
+<tr><td style="color:var(--text2)">28/07 à 13:12:47</td><td><strong style="color:#f59e0b">Landivisiau</strong></td><td><span class="badge badge-dispo">✅ Disponible</span></td><td style="color:var(--text3)">HTTP 200</td><td style="color:var(--text3);font-size:0.8rem">—</td></tr>
+<tr><td style="color:var(--text2)">28/07 à 13:12:47</td><td><strong style="color:#6366f1">Lesneven</strong></td><td><span class="badge badge-dispo">✅ Disponible</span></td><td style="color:var(--text3)">HTTP 200</td><td style="color:var(--text3);font-size:0.8rem">—</td></tr>
+<tr><td style="color:var(--text2)">27/07 à 22:11:02</td><td><strong style="color:#10b981">Saint-Pol-de-Léon</strong></td><td><span class="badge badge-dispo">✅ Disponible</span></td><td style="color:var(--text3)">HTTP 200</td><td style="color:var(--text3);font-size:0.8rem">—</td></tr>
+<tr><td style="color:var(--text2)">27/07 à 22:11:02</td><td><strong style="color:#f59e0b">Landivisiau</strong></td><td><span class="badge badge-dispo">✅ Disponible</span></td><td style="color:var(--text3)">HTTP 200</td><td style="color:var(--text3);font-size:0.8rem">—</td></tr>
+<tr><td style="color:var(--text2)">27/07 à 22:11:02</td><td><strong style="color:#6366f1">Lesneven</strong></td><td><span class="badge badge-dispo">✅ Disponible</span></td><td style="color:var(--text3)">HTTP 200</td><td style="color:var(--text3);font-size:0.8rem">—</td></tr>
+<tr><td style="color:var(--text2)">27/07 à 20:49:33</td><td><strong style="color:#10b981">Saint-Pol-de-Léon</strong></td><td><span class="badge badge-dispo">✅ Disponible</span></td><td style="color:var(--text3)">HTTP 200</td><td style="color:var(--text3);font-size:0.8rem">—</td></tr>
+<tr><td style="color:var(--text2)">27/07 à 20:49:33</td><td><strong style="color:#f59e0b">Landivisiau</strong></td><td><span class="badge badge-dispo">✅ Disponible</span></td><td style="color:var(--text3)">HTTP 200</td><td style="color:var(--text3);font-size:0.8rem">—</td></tr>
+<tr><td style="color:var(--text2)">27/07 à 20:49:33</td><td><strong style="color:#6366f1">Lesneven</strong></td><td><span class="badge badge-dispo">✅ Disponible</span></td><td style="color:var(--text3)">HTTP 200</td><td style="color:var(--text3);font-size:0.8rem">—</td></tr>
+<tr><td style="color:var(--text2)">27/07 à 19:12:03</td><td><strong style="color:#10b981">Saint-Pol-de-Léon</strong></td><td><span class="badge badge-dispo">✅ Disponible</span></td><td style="color:var(--text3)">HTTP 200</td><td style="color:var(--text3);font-size:0.8rem">—</td></tr>
+<tr><td style="color:var(--text2)">27/07 à 19:12:03</td><td><strong style="color:#f59e0b">Landivisiau</strong></td><td><span class="badge badge-dispo">✅ Disponible</span></td><td style="color:var(--text3)">HTTP 200</td><td style="color:var(--text3);font-size:0.8rem">—</td></tr>
+<tr><td style="color:var(--text2)">27/07 à 19:12:03</td><td><strong style="color:#6366f1">Lesneven</strong></td><td><span class="badge badge-dispo">✅ Disponible</span></td><td style="color:var(--text3)">HTTP 200</td><td style="color:var(--text3);font-size:0.8rem">—</td></tr>
+<tr><td style="color:var(--text2)">27/07 à 18:49:20</td><td><strong style="color:#10b981">Saint-Pol-de-Léon</strong></td><td><span class="badge badge-dispo">✅ Disponible</span></td><td style="color:var(--text3)">HTTP 200</td><td style="color:var(--text3);font-size:0.8rem">—</td></tr>
+<tr><td style="color:var(--text2)">27/07 à 18:49:20</td><td><strong style="color:#f59e0b">Landivisiau</strong></td><td><span class="badge badge-dispo">✅ Disponible</span></td><td style="color:var(--text3)">HTTP 200</td><td style="color:var(--text3);font-size:0.8rem">—</td></tr>
+<tr><td style="color:var(--text2)">27/07 à 18:49:19</td><td><strong style="color:#6366f1">Lesneven</strong></td><td><span class="badge badge-dispo">✅ Disponible</span></td><td style="color:var(--text3)">HTTP 200</td><td style="color:var(--text3);font-size:0.8rem">—</td></tr>
+<tr><td style="color:var(--text2)">27/07 à 18:47:54</td><td><strong style="color:#10b981">Saint-Pol-de-Léon</strong></td><td><span class="badge badge-dispo">✅ Disponible</span></td><td style="color:var(--text3)">HTTP 200</td><td style="color:var(--text3);font-size:0.8rem">—</td></tr>
+<tr><td style="color:var(--text2)">27/07 à 18:47:54</td><td><strong style="color:#f59e0b">Landivisiau</strong></td><td><span class="badge badge-dispo">✅ Disponible</span></td><td style="color:var(--text3)">HTTP 200</td><td style="color:var(--text3);font-size:0.8rem">—</td></tr>
+<tr><td style="color:var(--text2)">27/07 à 18:47:41</td><td><strong style="color:#6366f1">Lesneven</strong></td><td><span class="badge badge-dispo">✅ Disponible</span></td><td style="color:var(--text3)">HTTP 200</td><td style="color:var(--text3);font-size:0.8rem">—</td></tr>
+<tr><td style="color:var(--text2)">27/07 à 18:42:15</td><td><strong style="color:#10b981">Saint-Pol-de-Léon</strong></td><td><span class="badge badge-indispo">🚨 Indisponible</span></td><td style="color:var(--text3)">HTTP 200</td><td style="color:var(--text3);font-size:0.8rem">aucun coursier</td></tr>
+<tr><td style="color:var(--text2)">27/07 à 18:42:04</td><td><strong style="color:#f59e0b">Landivisiau</strong></td><td><span class="badge badge-dispo">✅ Disponible</span></td><td style="color:var(--text3)">HTTP 200</td><td style="color:var(--text3);font-size:0.8rem">—</td></tr>
+<tr><td style="color:var(--text2)">27/07 à 18:41:51</td><td><strong style="color:#6366f1">Lesneven</strong></td><td><span class="badge badge-dispo">✅ Disponible</span></td><td style="color:var(--text3)">HTTP 200</td><td style="color:var(--text3);font-size:0.8rem">—</td></tr>
+<tr><td style="color:var(--text2)">27/07 à 18:36:41</td><td><strong style="color:#10b981">Saint-Pol-de-Léon</strong></td><td><span class="badge badge-indispo">🚨 Indisponible</span></td><td style="color:var(--text3)">HTTP 200</td><td style="color:var(--text3);font-size:0.8rem">aucun coursier</td></tr>
+<tr><td style="color:var(--text2)">27/07 à 18:36:29</td><td><strong style="color:#f59e0b">Landivisiau</strong></td><td><span class="badge badge-dispo">✅ Disponible</span></td><td style="color:var(--text3)">HTTP 200</td><td style="color:var(--text3);font-size:0.8rem">—</td></tr>
+<tr><td style="color:var(--text2)">27/07 à 18:36:17</td><td><strong style="color:#6366f1">Lesneven</strong></td><td><span class="badge badge-dispo">✅ Disponible</span></td><td style="color:var(--text3)">HTTP 200</td><td style="color:var(--text3);font-size:0.8rem">—</td></tr>
+<tr><td style="color:var(--text2)">27/07 à 18:27:03</td><td><strong style="color:#10b981">Saint-Pol-de-Léon</strong></td><td><span class="badge badge-indispo">🚨 Indisponible</span></td><td style="color:var(--text3)">HTTP 200</td><td style="color:var(--text3);font-size:0.8rem">aucun coursier</td></tr>
+<tr><td style="color:var(--text2)">27/07 à 18:26:51</td><td><strong style="color:#f59e0b">Landivisiau</strong></td><td><span class="badge badge-dispo">✅ Disponible</span></td><td style="color:var(--text3)">HTTP 200</td><td style="color:var(--text3);font-size:0.8rem">—</td></tr>
+<tr><td style="color:var(--text2)">27/07 à 18:26:42</td><td><strong style="color:#6366f1">Lesneven</strong></td><td><span class="badge badge-dispo">✅ Disponible</span></td><td style="color:var(--text3)">HTTP 200</td><td style="color:var(--text3);font-size:0.8rem">—</td></tr>
 </tbody></table></div>
 
 </main>
 
 <footer>
-  UberEats Monitor · Auto-généré le 29/07/2026 à 16:16 · GitHub Actions · Lesneven · Landivisiau · Saint-Pol-de-Léon
+  UberEats Monitor · Auto-généré le 29/07/2026 à 16:18:57 (Heure de Paris) · Lesneven · Landivisiau · Saint-Pol-de-Léon
 </footer>
 
 <script>
@@ -533,7 +553,6 @@ function showCity(cityName) {
   });
 }
 
-// Init first tab
 showCity(CITIES[0]);
 </script>
 </body>
