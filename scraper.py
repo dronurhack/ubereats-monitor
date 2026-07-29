@@ -1,6 +1,6 @@
 """
 scraper.py — Script principal de surveillance UberEats via ScraperAPI
-Utilise l'API ScraperAPI pour le rendu JS et le bypass anti-bot Cloudflare.
+Interroge directement la page McDonald's de chaque ville.
 """
 
 import logging
@@ -94,24 +94,24 @@ def detect_unavailability(raw_html: str, city_name: str) -> tuple[bool, str]:
 
 
 # ─────────────────────────────────────────────
-# SCRAPING VILLE VIA SCRAPERAPI (avec attente de rendu JS)
+# SCRAPING VILLE VIA SCRAPERAPI
 # ─────────────────────────────────────────────
 def scrape_city(city: dict, conn: sqlite3.Connection) -> None:
     city_name = city["name"]
     url = city["url"]
-    log.info("[%s] Scraping via ScraperAPI -> %s", city_name, url[:60] + "...")
+    log.info("[%s] Scraping McDo via ScraperAPI -> %s", city_name, url[:60] + "...")
 
     params = {
         "api_key": SCRAPERAPI_KEY,
         "url": url,
         "render": "true",
         "country_code": "fr",
-        "render_wait": "5000",  # Attendre 5 secondes que le JS insere les cartes McDo/Restos
+        "render_wait": "4000",
     }
     endpoint = f"http://api.scraperapi.com?{urlencode(params)}"
 
     try:
-        response = requests.get(endpoint, timeout=70)
+        response = requests.get(endpoint, timeout=60)
         http_code = response.status_code
         raw_html = response.text or ""
         log.info("[%s] HTTP %s - Taille HTML : %d octets", city_name, http_code, len(raw_html))
@@ -159,7 +159,7 @@ def scrape_city(city: dict, conn: sqlite3.Connection) -> None:
 # ─────────────────────────────────────────────
 def main() -> None:
     log.info("========================================")
-    log.info("UberEats Monitor (ScraperAPI) — Demarrage du scan")
+    log.info("UberEats Monitor (ScraperAPI Direct Stores) — Demarrage du scan")
     log.info("Heure UTC : %s", datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M:%S"))
     log.info("========================================")
 
