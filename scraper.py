@@ -33,6 +33,7 @@ PROXY_SOURCES = [
     "https://raw.githubusercontent.com/TheSpeedX/PROXY-List/master/http.txt",
     "https://raw.githubusercontent.com/monosans/proxy-list/main/proxies/http.txt",
     "https://raw.githubusercontent.com/roosterkid/openproxylist/main/HTTPS_RAW.txt",
+    "https://raw.githubusercontent.com/proxifly/free-proxy-list/main/proxies/all.txt",
 ]
 
 
@@ -126,14 +127,14 @@ def detect_unavailability(raw_html: str, city_name: str) -> tuple[bool, str]:
 
 
 # ─────────────────────────────────────────────
-# SCRAPING VILLE AVEC ROTATION PROXY RAPIDE
+# SCRAPING VILLE AVEC ROTATION PROXY ULTRA-RAPIDE
 # ─────────────────────────────────────────────
 def scrape_city(city: dict, proxies: list[str], conn: sqlite3.Connection) -> None:
     city_name = city["name"]
     url = city["url"]
     log.info("[%s] Scraping -> %s", city_name, url[:80] + "...")
 
-    max_attempts = 15
+    max_attempts = 30
     http_code = 0
     raw_html = ""
     last_error = None
@@ -148,7 +149,7 @@ def scrape_city(city: dict, proxies: list[str], conn: sqlite3.Connection) -> Non
                 url,
                 impersonate="chrome120",
                 proxies={"http": proxy, "https": proxy} if proxy else None,
-                timeout=5,  # Fast timeout pour ne pas bloquer
+                timeout=2.5,  # Ultra-fast timeout pour zapper les mauvais proxies en < 2.5s
                 headers={
                     "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,*/*;q=0.8",
                     "Accept-Language": "fr-FR,fr;q=0.9,en-US;q=0.8",
