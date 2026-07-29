@@ -1,21 +1,20 @@
 """
-scraper.py — Script principal de surveillance UberEats via curl_cffi + Proxies Elite
-Utilise des proxies publics haute disponibilite et rotation d'empreinte TLS Chrome.
+scraper.py — Script principal de surveillance UberEats via ScraperAPI
+Utilise l'API ScraperAPI pour le rendu JS et le bypass anti-bot Cloudflare.
 """
 
 import logging
 import os
-import random
-import re
 import sqlite3
-import sys
-import time
 import unicodedata
 from datetime import datetime, timezone
+from urllib.parse import urlencode
 
-from curl_cffi import requests
+import requests
 
 from config import CITIES, DB_PATH, LOG_LEVEL, UNAVAILABILITY_SIGNALS
+
+SCRAPERAPI_KEY = os.getenv("SCRAPERAPI_KEY", "033ddfe5d867ec0be6ee2dbbd19a4906")
 
 # Configuration du logging
 logging.basicConfig(
@@ -24,38 +23,6 @@ logging.basicConfig(
     datefmt="%Y-%m-%d %H:%M:%S",
 )
 log = logging.getLogger("ubereats-scraper")
-
-
-# ─────────────────────────────────────────────
-# LISTES DE PROXIES PUBLICS VERIFIÉS ET RAPIDES
-# ─────────────────────────────────────────────
-PROXY_SOURCES = [
-    "https://api.proxyscrape.com/v2/?request=displayproxies&protocol=http&timeout=3000&country=all&ssl=all&anonymity=all",
-    "https://raw.githubusercontent.com/clarketm/proxy-list/master/proxy-list-raw.txt",
-    "https://raw.githubusercontent.com/TheSpeedX/PROXY-List/master/http.txt",
-    "https://raw.githubusercontent.com/jetkai/proxy-list/main/online-proxies/txt/proxies-http.txt",
-]
-
-
-def fetch_free_proxies() -> list[str]:
-    """Récupère une liste dynamique de proxies publics rapides."""
-    proxies = []
-    log.info("Recuperation des proxies publics ultra-rapides...")
-    session = requests.Session()
-    for source in PROXY_SOURCES:
-        try:
-            r = session.get(source, timeout=4)
-            if r.status_code == 200:
-                lines = r.text.splitlines()
-                for line in lines:
-                    line = line.strip()
-                    if line and ":" in line and not line.startswith("#"):
-                        proxies.append(f"http://{line}")
-        except Exception:
-            continue
-    log.info("%d proxies charges.", len(proxies))
-    random.shuffle(proxies)
-    return proxies
 
 
 # ─────────────────────────────────────────────
@@ -127,72 +94,62 @@ def detect_unavailability(raw_html: str, city_name: str) -> tuple[bool, str]:
 
 
 # ─────────────────────────────────────────────
-# SCRAPING VILLE AVEC ROTATION PROXY HAUTE PERFORMANCE
+# SCRAPING VILLE VIA SCRAPERAPI
 # ─────────────────────────────────────────────
-def scrape_city(city: dict, proxies: list[str], conn: sqlite3.Connection) -> None:
+def scrape_city(city: dict, conn: sqlite3.Connection) -> None:
     city_name = city["name"]
     url = city["url"]
-    log.info("[%s] Scraping -> %s", city_name, url[:80] + "...")
+    log.info("[%s] Scraping via ScraperAPI -> %s", city_name, url[:60] + "...")
 
-    max_attempts = 45
-    http_code = 0
-    raw_html = ""
-    last_error = None
+    params = {
+        "api_key": SCRAPERAPI_KEY,
+        "url": url,
+        "render": "true",
+        "country_code": "fr",
+    }
+    endpoint = f"http://api.scraperapi.com?{urlencode(params)}"
 
-    for attempt in range(max_attempts):
-        proxy = None if attempt == 0 else (proxies[attempt % len(proxies)] if proxies else None)
-        proxy_str = proxy if proxy else "DIRECT"
+    try:
+        response = requests.get(endpoint, timeout=60)
+        http_code = response.status_code
+        raw_html = response.text or ""
+        log.info("[%s] HTTP %s - Taille HTML : %d octets", city_name, http_code, len(raw_html))
 
-        try:
-            session = requests.Session()
-            response = session.get(
-                url,
-                impersonate="chrome120",
-                proxies={"http": proxy, "https": proxy} if proxy else None,
-                timeout=2.0,  # Switch quasi instantane si le proxy rame
-                headers={
-                    "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,*/*;q=0.8",
-                    "Accept-Language": "fr-FR,fr;q=0.9,en-US;q=0.8",
-                    "Sec-Ch-Ua": '"Not_A Brand";v="8", "Chromium";v="120", "Google Chrome";v="120"',
-                    "Sec-Ch-Ua-Mobile": "?0",
-                    "Sec-Ch-Ua-Platform": '"Windows"',
-                    "Sec-Fetch-Dest": "document",
-                    "Sec-Fetch-Mode": "navigate",
-                    "Sec-Fetch-Site": "none",
-                    "Upgrade-Insecure-Requests": "1",
-                }
+        if http_code == 200 and len(raw_html) > 5000:
+            is_unavailable, detection_phrase = detect_unavailability(raw_html, city_name)
+
+            if is_unavailable:
+                status = "INDISPONIBLE"
+                log.warning("[%s] -- INDISPONIBLE -- Detecte via : '%s'", city_name, detection_phrase)
+            else:
+                status = "DISPONIBLE"
+                log.info("[%s] ++ DISPONIBLE ++", city_name)
+
+            save_result(
+                conn,
+                city=city_name,
+                status=status,
+                detection=detection_phrase if is_unavailable else None,
+                http_code=200,
+            )
+        else:
+            log.error("[%s] Erreur ou reponse trop courte (HTTP %s - %d octets)", city_name, http_code, len(raw_html))
+            save_result(
+                conn,
+                city=city_name,
+                status="ERREUR",
+                http_code=http_code,
+                error=f"HTML invalide ou HTTP {http_code}",
             )
 
-            http_code = response.status_code
-            raw_html = response.text or ""
-
-            if http_code == 200 and len(raw_html) > 5000:
-                log.info("[%s] Succes via %s (HTTP 200 - %d octets)", city_name, proxy_str, len(raw_html))
-                break
-            else:
-                log.warning("[%s] Echec via %s (HTTP %s - %d octets)", city_name, proxy_str, http_code, len(raw_html))
-
-        except Exception as e:
-            last_error = str(e)
-
-    if http_code == 200 and len(raw_html) > 5000:
-        is_unavailable, detection_phrase = detect_unavailability(raw_html, city_name)
-        status = "INDISPONIBLE" if is_unavailable else "DISPONIBLE"
-        save_result(
-            conn,
-            city=city_name,
-            status=status,
-            detection=detection_phrase if is_unavailable else None,
-            http_code=200,
-        )
-    else:
-        log.error("[%s] Requete non aboutie apres %d essais.", city_name, max_attempts)
+    except Exception as e:
+        log.error("[%s] ERREUR connexion ScraperAPI : %s", city_name, e)
         save_result(
             conn,
             city=city_name,
             status="ERREUR",
-            http_code=http_code or 403,
-            error=last_error or "Cloudflare 403 / IP Blocked",
+            http_code=0,
+            error=str(e),
         )
 
 
@@ -201,15 +158,14 @@ def scrape_city(city: dict, proxies: list[str], conn: sqlite3.Connection) -> Non
 # ─────────────────────────────────────────────
 def main() -> None:
     log.info("========================================")
-    log.info("UberEats Monitor (Rotation Proxies Elite) — Demarrage")
+    log.info("UberEats Monitor (ScraperAPI) — Demarrage du scan")
     log.info("Heure UTC : %s", datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M:%S"))
     log.info("========================================")
 
     conn = init_db()
-    proxies = fetch_free_proxies()
 
     for city in CITIES:
-        scrape_city(city, proxies, conn)
+        scrape_city(city, conn)
 
     conn.close()
     log.info("========================================")
