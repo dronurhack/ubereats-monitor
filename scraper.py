@@ -1,6 +1,6 @@
 """
-scraper.py — Script principal de surveillance UberEats via curl_cffi + Proxies Gratuits Optims
-Utilise la rotation de proxies HTTPS et d'empreintes TLS Chrome pour contourner Cloudflare.
+scraper.py — Script principal de surveillance UberEats via curl_cffi + Proxies Elite
+Utilise des proxies publics haute disponibilite et rotation d'empreinte TLS Chrome.
 """
 
 import logging
@@ -27,20 +27,20 @@ log = logging.getLogger("ubereats-scraper")
 
 
 # ─────────────────────────────────────────────
-# LISTE DES PROXIES GRATUITS & ROTATION
+# LISTES DE PROXIES PUBLICS VERIFIÉS ET RAPIDES
 # ─────────────────────────────────────────────
 PROXY_SOURCES = [
+    "https://api.proxyscrape.com/v2/?request=displayproxies&protocol=http&timeout=3000&country=all&ssl=all&anonymity=all",
+    "https://raw.githubusercontent.com/clarketm/proxy-list/master/proxy-list-raw.txt",
     "https://raw.githubusercontent.com/TheSpeedX/PROXY-List/master/http.txt",
-    "https://raw.githubusercontent.com/monosans/proxy-list/main/proxies/http.txt",
-    "https://raw.githubusercontent.com/roosterkid/openproxylist/main/HTTPS_RAW.txt",
-    "https://raw.githubusercontent.com/proxifly/free-proxy-list/main/proxies/all.txt",
+    "https://raw.githubusercontent.com/jetkai/proxy-list/main/online-proxies/txt/proxies-http.txt",
 ]
 
 
 def fetch_free_proxies() -> list[str]:
-    """Récupère une liste dynamique de proxies publics HTTP/HTTPS gratuits."""
+    """Récupère une liste dynamique de proxies publics rapides."""
     proxies = []
-    log.info("Recuperation des proxies gratuits...")
+    log.info("Recuperation des proxies publics ultra-rapides...")
     session = requests.Session()
     for source in PROXY_SOURCES:
         try:
@@ -53,7 +53,7 @@ def fetch_free_proxies() -> list[str]:
                         proxies.append(f"http://{line}")
         except Exception:
             continue
-    log.info("%d proxies gratuits charges.", len(proxies))
+    log.info("%d proxies charges.", len(proxies))
     random.shuffle(proxies)
     return proxies
 
@@ -127,14 +127,14 @@ def detect_unavailability(raw_html: str, city_name: str) -> tuple[bool, str]:
 
 
 # ─────────────────────────────────────────────
-# SCRAPING VILLE AVEC ROTATION PROXY ULTRA-RAPIDE
+# SCRAPING VILLE AVEC ROTATION PROXY HAUTE PERFORMANCE
 # ─────────────────────────────────────────────
 def scrape_city(city: dict, proxies: list[str], conn: sqlite3.Connection) -> None:
     city_name = city["name"]
     url = city["url"]
     log.info("[%s] Scraping -> %s", city_name, url[:80] + "...")
 
-    max_attempts = 30
+    max_attempts = 45
     http_code = 0
     raw_html = ""
     last_error = None
@@ -149,7 +149,7 @@ def scrape_city(city: dict, proxies: list[str], conn: sqlite3.Connection) -> Non
                 url,
                 impersonate="chrome120",
                 proxies={"http": proxy, "https": proxy} if proxy else None,
-                timeout=2.5,  # Ultra-fast timeout pour zapper les mauvais proxies en < 2.5s
+                timeout=2.0,  # Switch quasi instantane si le proxy rame
                 headers={
                     "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,*/*;q=0.8",
                     "Accept-Language": "fr-FR,fr;q=0.9,en-US;q=0.8",
@@ -201,7 +201,7 @@ def scrape_city(city: dict, proxies: list[str], conn: sqlite3.Connection) -> Non
 # ─────────────────────────────────────────────
 def main() -> None:
     log.info("========================================")
-    log.info("UberEats Monitor (Rotation Proxies Gratuits) — Demarrage")
+    log.info("UberEats Monitor (Rotation Proxies Elite) — Demarrage")
     log.info("Heure UTC : %s", datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M:%S"))
     log.info("========================================")
 
