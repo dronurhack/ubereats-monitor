@@ -1,75 +1,68 @@
 # ─────────────────────────────────────────────────────────────────────────────
-# .github/workflows/scan.yml — GitHub Actions : surveillance automatique
-# ─────────────────────────────────────────────────────────────────────────────
-#
-# Ce workflow :
-#   1. Se déclenche toutes les 10 minutes (cron)
-#   2. Lance scraper.py pour scanner les 3 villes
-#   3. Commite la base SQLite mise à jour dans le repo
-#   4. Se "réveille" lui-même toutes les semaines pour éviter la désactivation
-#      automatique des crons GitHub Actions après 60 jours d'inactivité
-#
-# PRÉREQUIS : Définir le secret SCRAPFLY_API_KEY dans les Settings du repo
-# (Settings → Secrets and variables → Actions → New repository secret)
+# .github/workflows/scan.yml — GitHub Actions : surveillance automatique (Playwright Gratuit)
 # ─────────────────────────────────────────────────────────────────────────────
 
 name: UberEats Monitor — Scan toutes les 10 min
 
 on:
-  # ── Planification automatique ──────────────────────────────────────────────
   schedule:
     # Toutes les 10 min, entre 09h et 19h UTC = 11h–21h heure française (été, UTC+2)
-    # En hiver (UTC+1) : correspond à 10h–20h — toujours dans la plage de travail
     - cron: "*/10 9-19 * * *"
 
-  # ── Déclenchement manuel (pour tester) ────────────────────────────────────
+  # Déclenchement manuel (pour tester)
   workflow_dispatch:
 
-# ── Permissions pour pouvoir commiter la BDD dans le repo ─────────────────────
+# Permissions pour commiter la BDD + déployer GitHub Pages
 permissions:
   contents: write
+  pages: write
+  id-token: write
 
 jobs:
   scan:
     name: Scan des villes UberEats
     runs-on: ubuntu-latest
-    timeout-minutes: 8  # Sécurité : ne pas bloquer plus de 8 min
+    timeout-minutes: 8
 
     steps:
-      # ── 1. Checkout du repo ──────────────────────────────────────────────
+      # ── 1. Checkout ──────────────────────────────────────────────────────────
       - name: 📥 Checkout du dépôt
         uses: actions/checkout@v4
         with:
-          # Nécessaire pour pouvoir faire un git push ensuite
           token: ${{ secrets.GITHUB_TOKEN }}
 
-      # ── 2. Setup Python ──────────────────────────────────────────────────
+      # ── 2. Python ────────────────────────────────────────────────────────────
       - name: 🐍 Setup Python 3.11
         uses: actions/setup-python@v5
         with:
           python-version: "3.11"
           cache: "pip"
 
-      # ── 3. Installer les dépendances ─────────────────────────────────────
-      - name: 📦 Installer les dépendances
-        run: pip install -r requirements.txt
+      # ── 3. Dépendances & Playwright Chromium ─────────────────────────
+      - name: 📦 Installer les dépendances & Playwright
+        run: |
+          pip install -r requirements.txt
+          playwright install --with-deps chromium
 
-      # ── 4. Créer le répertoire data si besoin ────────────────────────────
-      - name: 📁 Préparer le répertoire data
-        run: mkdir -p data
+      # ── 4. Répertoires ───────────────────────────────────────────────────────
+      - name: 📁 Préparer les répertoires
+        run: |
+          mkdir -p data
+          mkdir -p docs
 
-      # ── 5. Lancer le scraper ─────────────────────────────────────────────
+      # ── 5. Scraper via Playwright (100% Gratuit) ──────────────────────────────
       - name: 🔍 Scanner les villes UberEats
-        env:
-          SCRAPFLY_API_KEY: ${{ secrets.SCRAPFLY_API_KEY }}
         run: python scraper.py
 
-      # ── 6. Commiter la BDD mise à jour ────────────────────────────────────
+      # ── 6. Générer le dashboard HTML ─────────────────────────────────────────
+      - name: 📊 Générer le dashboard
+        run: python dashboard.py
+
+      # ── 7. Commiter BDD + dashboard ──────────────────────────────────────────
       - name: 💾 Commiter les nouvelles données
         run: |
           git config user.name "UberEats Monitor Bot"
           git config user.email "bot@ubereats-monitor.local"
-          git add data/history.db
-          # Ne commiter que si la BDD a changé
+          git add data/history.db docs/index.html
           git diff --staged --quiet || git commit -m "📊 Scan $(date -u +'%Y-%m-%d %H:%M') UTC"
           git push
