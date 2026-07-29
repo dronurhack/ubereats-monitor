@@ -95,24 +95,21 @@ def detect_unavailability(raw_html: str, city_name: str) -> tuple[bool, str]:
 # ─────────────────────────────────────────────
 # SCRAPING VILLE VIA PLAYWRIGHT
 # ─────────────────────────────────────────────
-def scrape_city(browser, city: dict, conn: sqlite3.Connection) -> None:
+def scrape_city(context, city: dict, conn: sqlite3.Connection) -> None:
     city_name = city["name"]
     url = city["url"]
     log.info("[%s] Scraping -> %s", city_name, url[:80] + "...")
 
-    page = browser.new_page(
-        user_agent=(
-            "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 "
-            "(KHTML, Gecko) Chrome/122.0.0.0 Safari/537.36"
-        )
-    )
+    page = context.new_page()
 
     try:
-        # Navigation vers la page Uber Eats
-        response = page.goto(url, wait_until="networkidle", timeout=30000)
+        # Masquer les indicateurs automation / webdriver
+        page.add_init_script("Object.defineProperty(navigator, 'webdriver', {get: () => undefined})")
+
+        response = page.goto(url, wait_until="domcontentloaded", timeout=30000)
         http_code = response.status if response else 200
 
-        # Attente visuelle du chargement
+        # Attente pour l'exécution dynamique JS
         page.wait_for_timeout(4000)
 
         raw_html = page.content()
@@ -161,15 +158,27 @@ def main() -> None:
     conn = init_db()
 
     with sync_playwright() as p:
-        # Lancement du navigateur headless Chromium
         browser = p.chromium.launch(
             headless=True,
-            args=["--no-sandbox", "--disable-setuid-sandbox", "--disable-dev-shm-usage"]
+            args=[
+                "--no-sandbox",
+                "--disable-setuid-sandbox",
+                "--disable-dev-shm-usage",
+                "--disable-blink-features=AutomationControlled",
+            ]
+        )
+
+        context = browser.new_context(
+            user_agent="Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, Gecko) Chrome/123.0.0.0 Safari/537.36",
+            locale="fr-FR",
+            timezone_id="Europe/Paris",
+            viewport={"width": 1280, "height": 800},
         )
 
         for city in CITIES:
-            scrape_city(browser, city, conn)
+            scrape_city(context, city, conn)
 
+        context.close()
         browser.close()
 
     conn.close()
