@@ -1,5 +1,5 @@
 """
-scraper.py — Script principal de surveillance UberEats via curl_cffi + Proxies Gratuits
+scraper.py — Script principal de surveillance UberEats via curl_cffi + Proxies Gratuits Optims
 Utilise la rotation de proxies HTTPS et d'empreintes TLS Chrome pour contourner Cloudflare.
 """
 
@@ -31,8 +31,8 @@ log = logging.getLogger("ubereats-scraper")
 # ─────────────────────────────────────────────
 PROXY_SOURCES = [
     "https://raw.githubusercontent.com/TheSpeedX/PROXY-List/master/http.txt",
-    "https://raw.githubusercontent.com/clarketm/proxy-list/master/proxy-list-raw.txt",
     "https://raw.githubusercontent.com/monosans/proxy-list/main/proxies/http.txt",
+    "https://raw.githubusercontent.com/roosterkid/openproxylist/main/HTTPS_RAW.txt",
 ]
 
 
@@ -43,7 +43,7 @@ def fetch_free_proxies() -> list[str]:
     session = requests.Session()
     for source in PROXY_SOURCES:
         try:
-            r = session.get(source, timeout=5)
+            r = session.get(source, timeout=4)
             if r.status_code == 200:
                 lines = r.text.splitlines()
                 for line in lines:
@@ -126,15 +126,14 @@ def detect_unavailability(raw_html: str, city_name: str) -> tuple[bool, str]:
 
 
 # ─────────────────────────────────────────────
-# SCRAPING VILLE AVEC ROTATION PROXY
+# SCRAPING VILLE AVEC ROTATION PROXY RAPIDE
 # ─────────────────────────────────────────────
 def scrape_city(city: dict, proxies: list[str], conn: sqlite3.Connection) -> None:
     city_name = city["name"]
     url = city["url"]
     log.info("[%s] Scraping -> %s", city_name, url[:80] + "...")
 
-    # On essaie d'abord en direct, puis avec jusqu'à 8 proxies si Cloudflare (403) bloque
-    max_attempts = 10
+    max_attempts = 15
     http_code = 0
     raw_html = ""
     last_error = None
@@ -149,7 +148,7 @@ def scrape_city(city: dict, proxies: list[str], conn: sqlite3.Connection) -> Non
                 url,
                 impersonate="chrome120",
                 proxies={"http": proxy, "https": proxy} if proxy else None,
-                timeout=12,
+                timeout=5,  # Fast timeout pour ne pas bloquer
                 headers={
                     "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,*/*;q=0.8",
                     "Accept-Language": "fr-FR,fr;q=0.9,en-US;q=0.8",
@@ -174,9 +173,6 @@ def scrape_city(city: dict, proxies: list[str], conn: sqlite3.Connection) -> Non
 
         except Exception as e:
             last_error = str(e)
-            log.debug("[%s] Requete a echoue via %s : %s", city_name, proxy_str, e)
-
-        time.sleep(1)
 
     if http_code == 200 and len(raw_html) > 5000:
         is_unavailable, detection_phrase = detect_unavailability(raw_html, city_name)
@@ -189,7 +185,7 @@ def scrape_city(city: dict, proxies: list[str], conn: sqlite3.Connection) -> Non
             http_code=200,
         )
     else:
-        log.error("[%s] Impossible de bypasser Cloudflare apres %d essais.", city_name, max_attempts)
+        log.error("[%s] Requete non aboutie apres %d essais.", city_name, max_attempts)
         save_result(
             conn,
             city=city_name,
