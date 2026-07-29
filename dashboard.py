@@ -33,7 +33,7 @@ def fetch_all_scans(conn):
     cur = conn.execute("""
         SELECT city, scanned_at, status
         FROM scans
-        ORDER BY scanned_at DESC
+        ORDER BY id DESC
     """)
     rows = cur.fetchall()
     return rows
@@ -50,16 +50,17 @@ def fetch_recent_scans(conn, limit=60):
 
 
 def to_local_datetime(utc_str):
-    """Convertit UTC ISO string -> datetime Paris (UTC+2)."""
-    try:
-        dt = datetime.strptime(utc_str, "%Y-%m-%dT%H:%M:%SZ").replace(tzinfo=timezone.utc)
-        return dt + timedelta(hours=2)
-    except Exception:
+    """Convertit UTC string -> datetime Paris (UTC+2)."""
+    if not utc_str:
+        return None
+    clean = utc_str.replace("Z", "").strip()
+    for fmt in ("%Y-%m-%d %H:%M:%S", "%Y-%m-%dT%H:%M:%S"):
         try:
-            dt = datetime.strptime(utc_str, "%Y-%m-%d %H:%M:%S").replace(tzinfo=timezone.utc)
+            dt = datetime.strptime(clean, fmt).replace(tzinfo=timezone.utc)
             return dt + timedelta(hours=2)
-        except Exception:
-            return None
+        except ValueError:
+            continue
+    return None
 
 
 def compute_heatmap(rows, city_name):
@@ -464,7 +465,7 @@ footer {{
     </div>
   </div>
   <div class="header-meta">
-    <strong>Dernière mise à jour (France) : {generated_at}</strong>
+    <strong>Dernière mise à jour (Heure de Paris) : {generated_at}</strong>
     Scan automatisé toutes les 10 min • 11h–21h
   </div>
 </header>
@@ -536,7 +537,7 @@ footer {{
                     )
             html += '</tr>\n'
 
-        html += '</tbody></table>\n'
+        html += '</tbody>mtable>\n'
         html += '</div>\n'
         html += '</div>\n'
 
