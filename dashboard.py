@@ -33,18 +33,17 @@ def fetch_all_scans(conn):
     cur = conn.execute("""
         SELECT city, scanned_at, status
         FROM scans
-        WHERE status IN ('DISPONIBLE', 'INDISPONIBLE')
         ORDER BY scanned_at DESC
     """)
     rows = cur.fetchall()
     return rows
 
 
-def fetch_recent_scans(conn, limit=50):
+def fetch_recent_scans(conn, limit=60):
     cur = conn.execute("""
         SELECT city, scanned_at, status, detection, http_code, error
         FROM scans
-        ORDER BY scanned_at DESC
+        ORDER BY id DESC
         LIMIT ?
     """, (limit,))
     return cur.fetchall()
@@ -56,19 +55,23 @@ def to_local_datetime(utc_str):
         dt = datetime.strptime(utc_str, "%Y-%m-%dT%H:%M:%SZ").replace(tzinfo=timezone.utc)
         return dt + timedelta(hours=2)
     except Exception:
-        return None
+        try:
+            dt = datetime.strptime(utc_str, "%Y-%m-%d %H:%M:%S").replace(tzinfo=timezone.utc)
+            return dt + timedelta(hours=2)
+        except Exception:
+            return None
 
 
 def compute_heatmap(rows, city_name):
     """
-    Retourne une matrice 7x24 avec le taux d'INDISPONIBILITE (0.0 - 1.0).
+    Retourne une matrice 7x24 avec le taux d'INDISPONIBILITÉ (0.0 - 1.0).
     Axe 0 = jour semaine (0=lundi), axe 1 = heure (0-23).
     """
     totals = defaultdict(int)
     indispos = defaultdict(int)
 
     for city, scanned_at, status in rows:
-        if city != city_name:
+        if city != city_name or status not in ('DISPONIBLE', 'INDISPONIBLE'):
             continue
         dt = to_local_datetime(scanned_at)
         if dt is None:
@@ -92,11 +95,11 @@ def compute_heatmap(rows, city_name):
 
 
 def compute_stats(rows, city_name):
-    city_rows = [(s,) for c, _, s in rows if c == city_name]
+    city_rows = [s for c, _, s in rows if c == city_name and s in ('DISPONIBLE', 'INDISPONIBLE')]
     if not city_rows:
         return {"total": 0, "dispo": 0, "indispo": 0, "pct_indispo": 0}
     total = len(city_rows)
-    indispo = sum(1 for (s,) in city_rows if s == "INDISPONIBLE")
+    indispo = sum(1 for s in city_rows if s == "INDISPONIBLE")
     dispo = total - indispo
     return {
         "total": total,
@@ -107,12 +110,12 @@ def compute_stats(rows, city_name):
 
 
 def compute_best_hours(rows, city_name):
-    """Retourne les 5 creneaux avec le plus fort taux d'indisponibilite (min 3 obs)."""
+    """Retourne les 5 créneaux avec le plus fort taux d'indisponibilité."""
     totals = defaultdict(int)
     indispos = defaultdict(int)
 
     for city, scanned_at, status in rows:
-        if city != city_name:
+        if city != city_name or status not in ('DISPONIBLE', 'INDISPONIBLE'):
             continue
         dt = to_local_datetime(scanned_at)
         if dt is None:
@@ -124,7 +127,7 @@ def compute_best_hours(rows, city_name):
 
     results = []
     for key, total in totals.items():
-        if total >= 3:
+        if total >= 1:
             rate = indispos[key] / total
             results.append((key[0], key[1], rate, total))
 
@@ -146,11 +149,13 @@ def generate_html(all_rows, recent_rows, city_names, generated_at):
     recent_json = []
     for city, scanned_at, status, detection, http_code, error in recent_rows:
         dt = to_local_datetime(scanned_at)
+        time_str = dt.strftime("%d/%m à %H:%M:%S") if dt else scanned_at
         recent_json.append({
             "city": city,
-            "time": dt.strftime("%d/%m %H:%M") if dt else scanned_at,
+            "time": time_str,
             "status": status,
             "detection": detection or "",
+            "http_code": http_code or 200,
             "error": error or "",
         })
 
@@ -167,7 +172,6 @@ def generate_html(all_rows, recent_rows, city_names, generated_at):
 <title>UberEats Monitor — Finistère</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
-<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
 <style>
 :root {{
   --bg: #0a0f1e;
@@ -180,8 +184,6 @@ def generate_html(all_rows, recent_rows, city_names, generated_at):
   --border: #1f2937;
   --radius: 16px;
   --radius-sm: 10px;
-  --glow-indispo: rgba(239,68,68,0.15);
-  --glow-dispo: rgba(16,185,129,0.15);
 }}
 * {{ margin:0; padding:0; box-sizing:border-box; }}
 body {{
@@ -288,9 +290,7 @@ main {{ max-width: 1400px; margin: 0 auto; padding: 32px 24px; }}
   border-radius: var(--radius);
   padding: 20px;
   text-align: center;
-  transition: transform 0.2s;
 }}
-.stat-card:hover {{ transform: translateY(-2px); }}
 .stat-card .value {{
   font-size: 2rem;
   font-weight: 800;
@@ -305,7 +305,6 @@ main {{ max-width: 1400px; margin: 0 auto; padding: 32px 24px; }}
 }}
 .stat-dispo .value {{ color: #34d399; }}
 .stat-indispo .value {{ color: #f87171; }}
-.stat-total .value {{ color: #a5b4fc; }}
 
 /* BEST HOURS */
 .best-slots {{
@@ -342,7 +341,6 @@ main {{ max-width: 1400px; margin: 0 auto; padding: 32px 24px; }}
   height: 100%;
   border-radius: 99px;
   background: linear-gradient(90deg, #f87171, #ef4444);
-  transition: width 0.8s ease;
 }}
 .slot-pct {{
   font-size: 0.85rem;
@@ -392,10 +390,7 @@ main {{ max-width: 1400px; margin: 0 auto; padding: 32px 24px; }}
   text-align: center;
   font-size: 0.65rem;
   font-weight: 500;
-  cursor: default;
-  transition: transform 0.15s;
 }}
-.heatmap-table td:hover {{ transform: scale(1.3); z-index: 10; position: relative; }}
 .hm-day {{
   font-size: 0.72rem;
   font-weight: 600;
@@ -433,24 +428,21 @@ main {{ max-width: 1400px; margin: 0 auto; padding: 32px 24px; }}
   padding: 12px 16px;
   border-top: 1px solid var(--border);
 }}
-.recent-table tr:hover td {{ background: var(--surface2); }}
 .badge {{
   display: inline-block;
   padding: 3px 10px;
   border-radius: 99px;
   font-size: 0.72rem;
   font-weight: 700;
-  letter-spacing: 0.03em;
 }}
 .badge-dispo {{ background: rgba(16,185,129,0.15); color: #34d399; }}
 .badge-indispo {{ background: rgba(239,68,68,0.15); color: #f87171; }}
+.badge-block {{ background: rgba(245,158,11,0.15); color: #fbbf24; }}
 .badge-err {{ background: rgba(107,114,128,0.15); color: #9ca3af; }}
 
-/* TABS PANELS */
 .city-panel {{ display: none; }}
 .city-panel.active {{ display: block; }}
 
-/* FOOTER */
 footer {{
   text-align: center;
   padding: 28px;
@@ -458,29 +450,6 @@ footer {{
   font-size: 0.78rem;
   border-top: 1px solid var(--border);
   margin-top: 16px;
-}}
-
-/* LEGEND */
-.hm-legend {{
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  margin-top: 12px;
-  font-size: 0.72rem;
-  color: var(--text3);
-}}
-.hm-legend-bar {{
-  height: 10px;
-  flex: 1;
-  max-width: 180px;
-  border-radius: 99px;
-  background: linear-gradient(90deg, #1a3a1a, #f87171);
-}}
-
-@media (max-width: 600px) {{
-  header {{ padding: 20px 16px; }}
-  main {{ padding: 20px 12px; }}
-  .heatmap-table td {{ width: 22px; height: 22px; font-size: 0; }}
 }}
 </style>
 </head>
@@ -495,14 +464,13 @@ footer {{
     </div>
   </div>
   <div class="header-meta">
-    <strong>Mis à jour le {generated_at}</strong>
+    <strong>Dernière mise à jour (France) : {generated_at}</strong>
     Scan automatisé toutes les 10 min • 11h–21h
   </div>
 </header>
 
 <main>
 
-<!-- TABS -->
 <div class="tabs" id="cityTabs">
 """
 
@@ -513,10 +481,8 @@ footer {{
 
     html += "</div>\n"
 
-    # Per-city panels
     for i, city in enumerate(city_names):
         color = CITY_COLORS.get(city, {}).get("main", "#6366f1")
-        light = CITY_COLORS.get(city, {}).get("light", "#818cf8")
         stats = stats_all[city]
         best = best_hours_all[city]
         heatmap = heatmaps[city]
@@ -524,15 +490,13 @@ footer {{
 
         html += f'<div class="city-panel {active}" id="panel-{i}" data-city="{city}">\n'
 
-        # Stat cards
         html += '<div class="stat-grid">\n'
-        html += f'<div class="stat-card stat-total"><div class="value" style="color:{color}">{stats["total"]}</div><div class="label">Scans total</div></div>\n'
+        html += f'<div class="stat-card"><div class="value" style="color:{color}">{stats["total"]}</div><div class="label">Scans réussis</div></div>\n'
         html += f'<div class="stat-card stat-dispo"><div class="value">{stats["dispo"]}</div><div class="label">✅ Disponible</div></div>\n'
         html += f'<div class="stat-card stat-indispo"><div class="value">{stats["indispo"]}</div><div class="label">⚠️ Indisponible</div></div>\n'
         html += f'<div class="stat-card"><div class="value" style="color:#f87171">{stats["pct_indispo"]}%</div><div class="label">Taux pénurie</div></div>\n'
         html += '</div>\n'
 
-        # Best hours
         html += '<div class="section-title">🎯 Créneaux de pénurie les plus fréquents</div>\n'
         html += '<div class="best-slots"><div class="slot-list">\n'
         if best:
@@ -544,13 +508,12 @@ footer {{
   <div class="slot-pct">{pct}%</div>
 </div>\n'''
         else:
-            html += '<div class="no-data">Pas encore assez de données — reviens dans quelques jours !</div>\n'
+            html += '<div class="no-data">Pas encore assez de données — les données s\'accumulent au fil des jours !</div>\n'
         html += '</div></div>\n'
 
-        # Heatmap
         html += '<div class="section-title">🔥 Carte de chaleur — Taux de pénurie par heure</div>\n'
         html += '<div class="heatmap-wrap">\n'
-        html += '<div class="heatmap-title">Plus c\'est rouge, plus il y a de pénurie de livreurs (idéal pour toi !)</div>\n'
+        html += '<div class="heatmap-title">Taux d\'indisponibilité par jour et par heure (Heure de Paris)</div>\n'
         html += '<table class="heatmap-table"><thead><tr><th></th>'
         for h in range(24):
             html += f'<th>{h:02d}</th>'
@@ -563,7 +526,6 @@ footer {{
                 if val is None:
                     html += '<td class="hm-null" title="Aucune donnée">·</td>'
                 else:
-                    # Color: green (dispo) -> red (indispo)
                     r = int(val * 248 + (1-val) * 16)
                     g = int(val * 113 + (1-val) * 185)
                     b = int(val * 113 + (1-val) * 129)
@@ -575,22 +537,21 @@ footer {{
             html += '</tr>\n'
 
         html += '</tbody></table>\n'
-        html += '<div class="hm-legend"><span>Disponible</span><div class="hm-legend-bar"></div><span>Pénurie 100%</span></div>\n'
+        html += '</div>\n'
         html += '</div>\n'
 
-        html += '</div>\n'  # end panel
-
-    # Recent scans (outside tabs)
-    html += '<div class="section-title">🕐 Derniers scans</div>\n'
+    html += '<div class="section-title">🕐 Historique des scans récents (Temps Réel)</div>\n'
     html += '<div class="recent-wrap"><table class="recent-table"><thead><tr>'
-    html += '<th>Heure (Paris)</th><th>Ville</th><th>Statut</th><th>Détail</th>'
+    html += '<th>Heure (Paris)</th><th>Ville</th><th>Statut</th><th>Code HTTP</th><th>Détail</th>'
     html += '</tr></thead><tbody>\n'
 
     for r in recent_json:
-        if r["status"] == "DISPONIBLE":
+        if r["http_code"] == 403:
+            badge = f'<span class="badge badge-block">⚠️ Anti-Bot (403)</span>'
+        elif r["status"] == "DISPONIBLE":
             badge = f'<span class="badge badge-dispo">✅ Disponible</span>'
         elif r["status"] == "INDISPONIBLE":
-            badge = f'<span class="badge badge-indispo">⚠️ Indisponible</span>'
+            badge = f'<span class="badge badge-indispo">🚨 Indisponible</span>'
         else:
             badge = f'<span class="badge badge-err">❌ Erreur</span>'
 
@@ -601,18 +562,18 @@ footer {{
             f'<td style="color:var(--text2)">{r["time"]}</td>'
             f'<td><strong style="color:{city_color}">{r["city"]}</strong></td>'
             f'<td>{badge}</td>'
+            f'<td style="color:var(--text3)">HTTP {r["http_code"]}</td>'
             f'<td style="color:var(--text3);font-size:0.8rem">{detail}</td>'
             f'</tr>\n'
         )
 
     html += '</tbody></table></div>\n'
 
-    # Data for JS
     html += f"""
 </main>
 
 <footer>
-  UberEats Monitor · Auto-généré le {generated_at} · GitHub Actions · Lesneven · Landivisiau · Saint-Pol-de-Léon
+  UberEats Monitor · Auto-généré le {generated_at} (Heure de Paris) · Lesneven · Landivisiau · Saint-Pol-de-Léon
 </footer>
 
 <script>
@@ -641,7 +602,6 @@ function showCity(cityName) {{
   }});
 }}
 
-// Init first tab
 showCity(CITIES[0]);
 </script>
 </body>
@@ -656,9 +616,6 @@ def main():
     conn = get_db_conn()
     if conn is None:
         print("Base de donnees introuvable, dashboard vide cree.")
-        html = "<html><body><h1>Aucune donnee encore disponible.</h1></body></html>"
-        with open(OUTPUT_FILE, "w", encoding="utf-8") as f:
-            f.write(html)
         return
 
     all_rows = fetch_all_scans(conn)
@@ -667,14 +624,14 @@ def main():
 
     city_names = [c["name"] for c in CITIES]
     now_paris = datetime.now(timezone.utc) + timedelta(hours=2)
-    generated_at = now_paris.strftime("%d/%m/%Y à %H:%M")
+    generated_at = now_paris.strftime("%d/%m/%Y à %H:%M:%S")
 
     html = generate_html(all_rows, recent_rows, city_names, generated_at)
 
     with open(OUTPUT_FILE, "w", encoding="utf-8") as f:
         f.write(html)
 
-    print(f"Dashboard genere : {OUTPUT_FILE} ({len(all_rows)} scans)")
+    print(f"Dashboard genere : {OUTPUT_FILE} ({len(recent_rows)} scans recents)")
 
 
 if __name__ == "__main__":
