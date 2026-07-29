@@ -64,10 +64,6 @@ def to_local_datetime(utc_str):
 
 
 def compute_heatmap(rows, city_name):
-    """
-    Retourne une matrice 7x24 avec le taux d'INDISPONIBILITÉ (0.0 - 1.0).
-    Axe 0 = jour semaine (0=lundi), axe 1 = heure (0-23).
-    """
     totals = defaultdict(int)
     indispos = defaultdict(int)
 
@@ -111,7 +107,6 @@ def compute_stats(rows, city_name):
 
 
 def compute_best_hours(rows, city_name):
-    """Retourne les 5 créneaux avec le plus fort taux d'indisponibilité."""
     totals = defaultdict(int)
     indispos = defaultdict(int)
 
@@ -146,7 +141,6 @@ def generate_html(all_rows, recent_rows, city_names, generated_at):
         stats_all[city] = compute_stats(all_rows, city)
         best_hours_all[city] = compute_best_hours(all_rows, city)
 
-    # Format recent scans
     recent_json = []
     for city, scanned_at, status, detection, http_code, error in recent_rows:
         dt = to_local_datetime(scanned_at)
@@ -537,7 +531,7 @@ footer {{
                     )
             html += '</tr>\n'
 
-        html += '</tbody>mtable>\n'
+        html += '</tbody></table>\n'
         html += '</div>\n'
         html += '</div>\n'
 

@@ -94,7 +94,7 @@ def detect_unavailability(raw_html: str, city_name: str) -> tuple[bool, str]:
 
 
 # ─────────────────────────────────────────────
-# SCRAPING VILLE VIA SCRAPERAPI
+# SCRAPING VILLE VIA SCRAPERAPI (avec attente de rendu JS)
 # ─────────────────────────────────────────────
 def scrape_city(city: dict, conn: sqlite3.Connection) -> None:
     city_name = city["name"]
@@ -106,11 +106,12 @@ def scrape_city(city: dict, conn: sqlite3.Connection) -> None:
         "url": url,
         "render": "true",
         "country_code": "fr",
+        "render_wait": "5000",  # Attendre 5 secondes que le JS insere les cartes McDo/Restos
     }
     endpoint = f"http://api.scraperapi.com?{urlencode(params)}"
 
     try:
-        response = requests.get(endpoint, timeout=60)
+        response = requests.get(endpoint, timeout=70)
         http_code = response.status_code
         raw_html = response.text or ""
         log.info("[%s] HTTP %s - Taille HTML : %d octets", city_name, http_code, len(raw_html))
