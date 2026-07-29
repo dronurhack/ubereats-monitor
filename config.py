@@ -1,13 +1,11 @@
 """
-config.py — Configuration centralisée du projet UberEats Monitor
-Modifie ce fichier pour ajuster les villes, les URLs et autres paramètres.
+config.py — Configuration centrale du projet UberEats Monitor
 """
 
 import os
 
 # ─────────────────────────────────────────────
-# VILLES CIBLES (Finistère)
-# Coordonnées GPS utilisées pour construire les URLs UberEats
+# VILLES À SURVEILLER (URLs exactes Uber Eats)
 # ─────────────────────────────────────────────
 CITIES = [
     {
@@ -41,48 +39,21 @@ CITIES = [
 ]
 
 # ─────────────────────────────────────────────
-# CLÉS API (lues depuis les variables d'environnement GitHub Secrets)
-# Ne jamais hardcoder de clé directement ici !
+# BASE DE DONNÉES ET LOGS
 # ─────────────────────────────────────────────
-SCRAPFLY_API_KEY = os.environ.get("SCRAPFLY_API_KEY", "")
+DB_PATH = os.getenv("DB_PATH", "data/history.db")
+LOG_LEVEL = os.getenv("LOG_LEVEL", "INFO")
 
 # ─────────────────────────────────────────────
-# BASE DE DONNÉES
-# ─────────────────────────────────────────────
-DB_PATH = "data/history.db"
-
-# ─────────────────────────────────────────────
-# SCRAPFLY — Options de scraping
-# ─────────────────────────────────────────────
-SCRAPFLY_OPTIONS = {
-    "asp": True,              # Bypass anti-bot (Cloudflare, DataDome…)
-    "render_js": True,        # Rendu JavaScript côté cloud (headless browser)
-    "proxy_pool": "public_residential_pool",  # Proxies résidentiels
-    "country": "FR",          # Géolocalisation France
-    "wait_for_selector": "main",  # Attendre le contenu principal
-}
-
-# ─────────────────────────────────────────────
-# DÉTECTION DU MESSAGE "PAS DE LIVREURS"
-# Le script nettoie les accents et apostrophes avant comparaison !
+# PHRASES / MOTS-CLÉS DE DÉTECTION D'INDISPONIBILITÉ
 # ─────────────────────────────────────────────
 UNAVAILABILITY_SIGNALS = [
-    "aucun coursier",
-    "pas de coursier",
-    "aucun livreur",
-    "pas de livreur",
-    "coursier a proximite",
-    "livreur a proximite",
-    "coursiers a proximite",
-    "livreurs a proximite",
-    "no couriers",
-    "non disponible dans votre zone",
-    "indisponible dans votre zone",
-    "pas de coursiers",
+    "aucun coursier a proximite",
+    "aucun coursier à proximité",
+    "aucun coursier disponible",
+    "indisponible pour le moment",
+    "plus de livreurs",
     "pas de livreurs",
+    "service indisponible",
+    "indisponible",
 ]
-
-# ─────────────────────────────────────────────
-# LOGGING
-# ─────────────────────────────────────────────
-LOG_LEVEL = "INFO"  # DEBUG pour plus de verbosité

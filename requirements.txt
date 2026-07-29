@@ -1,6 +1,1 @@
-# ─────────────────────────────────────────────────────────────────────────────
-# requirements.txt — Dépendances Python du projet UberEats Monitor
-# ─────────────────────────────────────────────────────────────────────────────
-
-# Client officiel Scrapfly (scraping anti-bot + JS rendering)
-scrapfly-sdk>=0.8.0
+playwright==1.42.0
