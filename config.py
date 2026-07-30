@@ -5,29 +5,20 @@ config.py — Configuration centrale du projet UberEats Monitor
 import os
 
 # ─────────────────────────────────────────────
-# VILLES À SURVEILLER (URLs directes par ville)
+# VILLES À SURVEILLER (URLs directes McDonald's par ville)
 # ─────────────────────────────────────────────
 CITIES = [
     {
         "name": "Lesneven",
         "url": "https://www.ubereats.com/fr/store/mcdonalds-lesneven/YZYMWgwoV3W8lqE3tnmRBA?diningMode=DELIVERY&surfaceName=",
-        "slug": "lesneven",
-        "lat": 48.5714,
-        "lon": -4.3222,
     },
     {
         "name": "Landivisiau",
         "url": "https://www.ubereats.com/fr/store/mcdonalds-landivisiau/_eOW8FZIV4iFEbal8hnYqA?diningMode=DELIVERY&surfaceName=",
-        "slug": "landivisiau",
-        "lat": 48.5090,
-        "lon": -4.0724,
     },
     {
         "name": "Saint-Pol-de-Léon",
         "url": "https://www.ubereats.com/fr/store/mcdonalds-saint-pol-de-leon/EWQNkPHFUviyXnOHOFDWnA?diningMode=DELIVERY&surfaceName=",
-        "slug": "saint-pol-de-leon",
-        "lat": 48.6845,
-        "lon": -3.9861,
     },
 ]
 
@@ -41,13 +32,13 @@ SCRAPFLY_API_KEY = os.getenv("SCRAPFLY_API_KEY", "scp-live-c36a7d2bd6be41dbaf8e0
 SCRAPFLY_OPTIONS = {
     "asp": True,
     "render_js": True,
+    "rendering_wait": 3000,
     "proxy_pool": "public_residential_pool",
     "country": "FR",
-    "wait_for_selector": "main",
 }
 
 # ─────────────────────────────────────────────
-# PHRASES STRICTES ET SANS FAUX POSITIFS DE PÉNURIE DE LIVREURS
+# PHRASES DE DÉTECTION DE PÉNURIE DE LIVREURS OU PAGE VIDE
 # ─────────────────────────────────────────────
 UNAVAILABILITY_SIGNALS = [
     "aucun coursier a proximite",
@@ -58,4 +49,6 @@ UNAVAILABILITY_SIGNALS = [
     "pas de livreurs à proximité",
     "aucun livreur",
     "no couriers nearby",
+    "rien a se mettre sous la dent",
+    "rien à se mettre sous la dent",
 ]
