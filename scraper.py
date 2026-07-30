@@ -164,6 +164,20 @@ def init_db() -> sqlite3.Connection:
             error       TEXT
         )
     """)
+    # Migration automatique si l'ancienne table n'a pas la colonne 'url'
+    cursor = conn.execute("PRAGMA table_info(scans)")
+    columns = [row[1] for row in cursor.fetchall()]
+    if "url" not in columns:
+        try:
+            conn.execute("ALTER TABLE scans ADD COLUMN url TEXT")
+        except Exception:
+            pass
+    if "http_code" not in columns:
+        try:
+            conn.execute("ALTER TABLE scans ADD COLUMN http_code INTEGER")
+        except Exception:
+            pass
+
     conn.execute("CREATE INDEX IF NOT EXISTS idx_city_date ON scans(city, scanned_at)")
     conn.commit()
     return conn
