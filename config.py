@@ -27,18 +27,9 @@ CITIES = [
 # ─────────────────────────────────────────────
 DB_PATH = os.getenv("DB_PATH", "data/history.db")
 LOG_LEVEL = os.getenv("LOG_LEVEL", "INFO")
-SCRAPFLY_API_KEY = os.getenv("SCRAPFLY_API_KEY", "scp-live-c36a7d2bd6be41dbaf8e0659d66742f8")
-
-SCRAPFLY_OPTIONS = {
-    "asp": True,
-    "render_js": True,
-    "rendering_wait": 3000,
-    "proxy_pool": "public_residential_pool",
-    "country": "FR",
-}
 
 # ─────────────────────────────────────────────
-# PHRASES DE DÉTECTION DE PÉNURIE DE LIVREURS OU PAGE VIDE
+# PHRASES DE DÉTECTION DE PÉNURIE DE LIVREURS
 # ─────────────────────────────────────────────
 UNAVAILABILITY_SIGNALS = [
     "aucun coursier a proximite",
