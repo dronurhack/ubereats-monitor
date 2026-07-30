@@ -1,8 +1,11 @@
 """
 scraper.py — Surveillance UberEats via ScraperAPI (render JS)
 Détecte "Aucun coursier à proximité" sur les pages McDonald's de chaque ville.
+Force la bonne adresse de livraison via le paramètre pl= dans l'URL.
 """
 
+import base64
+import json
 import logging
 import os
 import sqlite3
@@ -32,6 +35,32 @@ logging.basicConfig(
     datefmt="%Y-%m-%d %H:%M:%S",
 )
 log = logging.getLogger(__name__)
+
+
+# ─────────────────────────────────────────────
+# CONSTRUCTION URL AVEC LOCALISATION FORCÉE
+# ─────────────────────────────────────────────
+def build_store_url(city: dict) -> str:
+    """
+    Construit l'URL du store McDonald's avec le paramètre pl= qui force
+    l'adresse de livraison dans la bonne ville.
+    Cela garantit que UberEats affiche "Lesneven" quand on scanne Lesneven,
+    "Landivisiau" quand on scanne Landivisiau, etc.
+    """
+    location_payload = {
+        "addressLine1": city["name"],
+        "addressLine2": "France",
+        "city": city["name"],
+        "country": "FR",
+        "countryIso2": "FR",
+        "latitude": city["lat"],
+        "longitude": city["lon"],
+    }
+    pl_encoded = base64.urlsafe_b64encode(
+        json.dumps(location_payload, separators=(",", ":")).encode("utf-8")
+    ).decode("utf-8")
+
+    return f"{city['store_url']}?diningMode=DELIVERY&pl={pl_encoded}"
 
 
 # ─────────────────────────────────────────────
@@ -86,8 +115,6 @@ def extract_visible_text(html: str) -> str:
 def detect_unavailability(html: str) -> tuple[bool, str | None]:
     """
     Cherche les signaux d'indisponibilité UNIQUEMENT dans le texte visible.
-    On ne cherche PAS dans le HTML brut pour éviter les faux positifs
-    provenant du JSON React embarqué dans les balises <script>.
     """
     visible_text = extract_visible_text(html)
     normalized = normalize_text(visible_text)
@@ -104,10 +131,6 @@ def detect_unavailability(html: str) -> tuple[bool, str | None]:
 # SCRAPERAPI — Requête HTTP simple
 # ─────────────────────────────────────────────
 def scrape_url(target_url: str) -> tuple[int, str]:
-    """
-    Appelle ScraperAPI avec rendu JavaScript activé.
-    Retourne (http_status, html_content).
-    """
     params = {
         "api_key": SCRAPERAPI_KEY,
         "url": target_url,
@@ -169,18 +192,17 @@ def save_result(conn, city, status, url=None, detection=None, error=None, http_c
 # ─────────────────────────────────────────────
 def scrape_city(city: dict, conn: sqlite3.Connection) -> None:
     city_name = city["name"]
-    url = city["url"]
-    log.info("[%s] Scraping → %s", city_name, url[:80])
+    url = build_store_url(city)
+    log.info("[%s] Scraping → %s", city_name, url[:100])
 
     try:
         http_code, html = scrape_url(url)
-        html_len = len(html)
-        log.info("[%s] HTTP %s — %d octets reçus", city_name, http_code, html_len)
+        log.info("[%s] HTTP %s — %d octets reçus", city_name, http_code, len(html))
 
-        # Debug : afficher le texte visible pour vérifier ce que ScraperAPI voit
+        # Debug : afficher le texte visible pour vérifier la ville affichée
         visible = extract_visible_text(html)
         normalized = normalize_text(visible)
-        log.info("[%s] TEXTE VISIBLE (extrait): ...%s...", city_name, normalized[:300])
+        log.info("[%s] TEXTE VISIBLE (extrait): %s", city_name, normalized[:300])
 
         is_unavail, phrase = detect_unavailability(html)
 

@@ -5,20 +5,26 @@ config.py — Configuration centrale du projet UberEats Monitor
 import os
 
 # ─────────────────────────────────────────────
-# VILLES À SURVEILLER (URLs directes McDonald's par ville)
+# VILLES À SURVEILLER (URLs directes McDonald's + coordonnées GPS)
 # ─────────────────────────────────────────────
 CITIES = [
     {
         "name": "Lesneven",
-        "url": "https://www.ubereats.com/fr/store/mcdonalds-lesneven/YZYMWgwoV3W8lqE3tnmRBA?diningMode=DELIVERY&surfaceName=",
+        "store_url": "https://www.ubereats.com/fr/store/mcdonalds-lesneven/YZYMWgwoV3W8lqE3tnmRBA",
+        "lat": 48.5714,
+        "lon": -4.3222,
     },
     {
         "name": "Landivisiau",
-        "url": "https://www.ubereats.com/fr/store/mcdonalds-landivisiau/_eOW8FZIV4iFEbal8hnYqA?diningMode=DELIVERY&surfaceName=",
+        "store_url": "https://www.ubereats.com/fr/store/mcdonalds-landivisiau/_eOW8FZIV4iFEbal8hnYqA",
+        "lat": 48.5090,
+        "lon": -4.0724,
     },
     {
         "name": "Saint-Pol-de-Léon",
-        "url": "https://www.ubereats.com/fr/store/mcdonalds-saint-pol-de-leon/EWQNkPHFUviyXnOHOFDWnA?diningMode=DELIVERY&surfaceName=",
+        "store_url": "https://www.ubereats.com/fr/store/mcdonalds-saint-pol-de-leon/EWQNkPHFUviyXnOHOFDWnA",
+        "lat": 48.6845,
+        "lon": -3.9861,
     },
 ]
 
