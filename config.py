@@ -29,7 +29,7 @@ DB_PATH = os.getenv("DB_PATH", "data/history.db")
 LOG_LEVEL = os.getenv("LOG_LEVEL", "INFO")
 
 # ─────────────────────────────────────────────
-# PHRASES DE DÉTECTION DE PÉNURIE DE LIVREURS
+# PHRASES STRICTES — uniquement pénurie de coursiers/livreurs
 # ─────────────────────────────────────────────
 UNAVAILABILITY_SIGNALS = [
     "aucun coursier a proximite",
@@ -40,6 +40,4 @@ UNAVAILABILITY_SIGNALS = [
     "pas de livreurs à proximité",
     "aucun livreur",
     "no couriers nearby",
-    "rien a se mettre sous la dent",
-    "rien à se mettre sous la dent",
 ]

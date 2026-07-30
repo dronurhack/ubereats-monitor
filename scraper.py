@@ -43,6 +43,7 @@ def normalize_text(text: str) -> str:
     text = text.replace("&ocirc;", "o").replace("&ucirc;", "u")
     text = text.replace("&ccedil;", "c").replace("&nbsp;", " ")
     text = text.replace("\u2019", "'").replace("\u0060", "'")
+    text = text.replace("\u2018", "'")
     text = text.replace("'", "'").replace("`", "'")
     nfkd = unicodedata.normalize("NFKD", text)
     text = "".join([c for c in nfkd if not unicodedata.combining(c)])
@@ -83,17 +84,17 @@ def extract_visible_text(html: str) -> str:
 
 
 def detect_unavailability(html: str) -> tuple[bool, str | None]:
-    """Cherche les signaux d'indisponibilité dans le HTML brut + texte visible."""
-    # 1) Texte visible
-    visible = normalize_text(extract_visible_text(html))
-    for signal in UNAVAILABILITY_SIGNALS:
-        if normalize_text(signal) in visible:
-            return True, signal
+    """
+    Cherche les signaux d'indisponibilité UNIQUEMENT dans le texte visible.
+    On ne cherche PAS dans le HTML brut pour éviter les faux positifs
+    provenant du JSON React embarqué dans les balises <script>.
+    """
+    visible_text = extract_visible_text(html)
+    normalized = normalize_text(visible_text)
 
-    # 2) HTML brut (le texte peut être dans des attributs JSON ou data-)
-    raw = normalize_text(html)
     for signal in UNAVAILABILITY_SIGNALS:
-        if normalize_text(signal) in raw:
+        norm_signal = normalize_text(signal)
+        if norm_signal in normalized:
             return True, signal
 
     return False, None
@@ -110,9 +111,9 @@ def scrape_url(target_url: str) -> tuple[int, str]:
     params = {
         "api_key": SCRAPERAPI_KEY,
         "url": target_url,
-        "render": "true",          # Active le navigateur headless
-        "country_code": "fr",      # Proxy français
-        "wait_for_selector": "main",  # Attend que le contenu principal charge
+        "render": "true",
+        "country_code": "fr",
+        "wait_for_selector": "main",
         "device_type": "desktop",
     }
     resp = requests.get(
@@ -141,7 +142,6 @@ def init_db() -> sqlite3.Connection:
             error       TEXT
         )
     """)
-    # Migration auto si colonnes manquantes
     cursor = conn.execute("PRAGMA table_info(scans)")
     columns = [row[1] for row in cursor.fetchall()]
     for col, col_type in [("url", "TEXT"), ("http_code", "INTEGER"), ("error", "TEXT")]:
@@ -177,9 +177,10 @@ def scrape_city(city: dict, conn: sqlite3.Connection) -> None:
         html_len = len(html)
         log.info("[%s] HTTP %s — %d octets reçus", city_name, http_code, html_len)
 
-        # Debug : afficher un extrait du texte visible pour vérifier
-        visible_sample = normalize_text(extract_visible_text(html))[:500]
-        log.info("[%s] Extrait texte visible: %s", city_name, visible_sample[:200])
+        # Debug : afficher le texte visible pour vérifier ce que ScraperAPI voit
+        visible = extract_visible_text(html)
+        normalized = normalize_text(visible)
+        log.info("[%s] TEXTE VISIBLE (extrait): ...%s...", city_name, normalized[:300])
 
         is_unavail, phrase = detect_unavailability(html)
 
@@ -213,7 +214,7 @@ def main():
 
     for city in CITIES:
         scrape_city(city, conn)
-        time.sleep(2)  # Pause entre les villes pour éviter le rate-limit
+        time.sleep(2)
 
     conn.close()
     log.info("═══════════════════════════════════════════")
