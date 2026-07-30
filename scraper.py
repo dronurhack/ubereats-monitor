@@ -1,49 +1,171 @@
 """
-scraper.py — Script principal de surveillance UberEats via ScraperAPI
-Interroge directement la page McDonald's de chaque ville.
+scraper.py — Script principal de surveillance UberEats
+Interroge Scrapfly pour chaque ville et détecte les messages d'indisponibilité de livreurs.
+Lance ce script via GitHub Actions (voir .github/workflows/scan.yml).
 """
 
+import base64
+import json
 import logging
 import os
 import sqlite3
+import sys
 import unicodedata
 from datetime import datetime, timezone
-from urllib.parse import urlencode
+from html.parser import HTMLParser
 
-import requests
+from scrapfly import ScrapflyClient, ScrapeConfig, ScrapeApiResponse
 
-from config import CITIES, DB_PATH, LOG_LEVEL, UNAVAILABILITY_SIGNALS
+from config import (
+    CITIES,
+    DB_PATH,
+    LOG_LEVEL,
+    SCRAPFLY_API_KEY,
+    SCRAPFLY_OPTIONS,
+    UNAVAILABILITY_SIGNALS,
+)
 
-SCRAPERAPI_KEY = os.getenv("SCRAPERAPI_KEY", "033ddfe5d867ec0be6ee2dbbd19a4906")
-
-# Configuration du logging
+# ─────────────────────────────────────────────
+# CONFIGURATION DU LOGGING
+# ─────────────────────────────────────────────
 logging.basicConfig(
     level=getattr(logging, LOG_LEVEL, logging.INFO),
     format="%(asctime)s [%(levelname)s] %(message)s",
     datefmt="%Y-%m-%d %H:%M:%S",
 )
-log = logging.getLogger("ubereats-scraper")
+log = logging.getLogger(__name__)
+
+# Mode debug optionnel
+debug_mode = os.environ.get("DEBUG_MODE", "0") == "1"
 
 
 # ─────────────────────────────────────────────
-# BASE DE DONNÉES SQLITE
+# UTILITAIRES DE TEXTE & HTML
 # ─────────────────────────────────────────────
-def init_db(db_path: str = DB_PATH) -> sqlite3.Connection:
-    os.makedirs(os.path.dirname(db_path) or ".", exist_ok=True)
-    conn = sqlite3.connect(db_path)
-    with conn:
-        conn.execute("""
-            CREATE TABLE IF NOT EXISTS scans (
-                id           INTEGER PRIMARY KEY AUTOINCREMENT,
-                scanned_at   TEXT    NOT NULL,
-                city         TEXT    NOT NULL,
-                status       TEXT    NOT NULL,
-                detection    TEXT,
-                http_code    INTEGER DEFAULT 200,
-                error        TEXT
-            )
-        """)
-    log.info("Base de donnees initialisee : %s", db_path)
+def normalize_text(text: str) -> str:
+    """
+    Nettoie et normalise le texte pour une comparaison sans échec :
+    - Supprime les accents (à → a, é → e...)
+    - Remplace les apostrophes spéciales par apostrophe simple
+    - Convertit en minuscules
+    """
+    text = text.replace("&agrave;", "a").replace("&eacute;", "e")
+    text = text.replace("&egrave;", "e").replace("&ecirc;", "e")
+    text = text.replace("&ocirc;", "o").replace("&ucirc;", "u")
+    text = text.replace("&ccedil;", "c").replace("&nbsp;", " ")
+    text = text.replace("’", "'").replace("`", "'")
+    text = text.replace("\u2019", "'").replace("\u0060", "'")
+    
+    nfkd = unicodedata.normalize("NFKD", text)
+    text = "".join([c for c in nfkd if not unicodedata.combining(c)])
+
+    return text.lower()
+
+
+class VisibleTextExtractor(HTMLParser):
+    """Extrait uniquement le texte visible d'une page HTML."""
+    def __init__(self):
+        super().__init__()
+        self.result = []
+        self._skip = False
+
+    def handle_starttag(self, tag, attrs):
+        if tag in ("script", "style", "noscript", "head"):
+            self._skip = True
+
+    def handle_endtag(self, tag):
+        if tag in ("script", "style", "noscript", "head"):
+            self._skip = False
+
+    def handle_data(self, data):
+        if not self._skip:
+            stripped = data.strip()
+            if stripped:
+                self.result.append(stripped)
+
+    def get_text(self) -> str:
+        return " ".join(self.result)
+
+
+def extract_visible_text(html_content: str) -> str:
+    extractor = VisibleTextExtractor()
+    try:
+        extractor.feed(html_content)
+    except Exception:
+        pass
+    return extractor.get_text()
+
+
+def extract_script_json_text(html_content: str) -> str:
+    import re
+    scripts = re.findall(r"<script[^>]*>(.*?)</script>", html_content, re.DOTALL | re.IGNORECASE)
+    return " ".join(scripts)
+
+
+# ─────────────────────────────────────────────
+# URL & DÉTECTION
+# ─────────────────────────────────────────────
+def build_ubereats_url(city: dict) -> str:
+    """Construit l'URL UberEats pour la ville donnée avec localisation encodée."""
+    location_payload = {
+        "addressLine1": city["name"],
+        "addressLine2": "France",
+        "city": city["name"],
+        "country": "FR",
+        "countryIso2": "FR",
+        "latitude": city["lat"],
+        "longitude": city["lon"],
+    }
+    pl_encoded = base64.urlsafe_b64encode(
+        json.dumps(location_payload, separators=(",", ":")).encode("utf-8")
+    ).decode("utf-8")
+    return f"https://www.ubereats.com/fr/city/{city['slug']}?pl={pl_encoded}"
+
+
+def detect_unavailability(html_content: str, city_name: str) -> tuple[bool, str | None]:
+    """Cherche les signaux d'indisponibilité de livreurs dans le HTML."""
+    visible_text = extract_visible_text(html_content)
+    normalized_visible = normalize_text(visible_text)
+
+    for signal in UNAVAILABILITY_SIGNALS:
+        if normalize_text(signal) in normalized_visible:
+            return True, signal
+
+    script_text = extract_script_json_text(html_content)
+    normalized_scripts = normalize_text(script_text)
+
+    for signal in UNAVAILABILITY_SIGNALS:
+        if normalize_text(signal) in normalized_scripts:
+            return True, signal
+
+    normalized_raw = normalize_text(html_content)
+    for signal in UNAVAILABILITY_SIGNALS:
+        if normalize_text(signal) in normalized_raw:
+            return True, signal
+
+    return False, None
+
+
+# ─────────────────────────────────────────────
+# BASE DE DONNÉES
+# ─────────────────────────────────────────────
+def init_db() -> sqlite3.Connection:
+    os.makedirs(os.path.dirname(DB_PATH), exist_ok=True)
+    conn = sqlite3.connect(DB_PATH)
+    conn.execute("""
+        CREATE TABLE IF NOT EXISTS scans (
+            id          INTEGER PRIMARY KEY AUTOINCREMENT,
+            city        TEXT    NOT NULL,
+            scanned_at  TEXT    NOT NULL,
+            status      TEXT    NOT NULL CHECK(status IN ('DISPONIBLE', 'INDISPONIBLE', 'ERREUR')),
+            detection   TEXT,
+            url         TEXT,
+            http_code   INTEGER,
+            error       TEXT
+        )
+    """)
+    conn.execute("CREATE INDEX IF NOT EXISTS idx_city_date ON scans(city, scanned_at)")
+    conn.commit()
     return conn
 
 
@@ -51,127 +173,122 @@ def save_result(
     conn: sqlite3.Connection,
     city: str,
     status: str,
-    detection: str = None,
-    http_code: int = 200,
-    error: str = None,
+    url: str | None = None,
+    detection: str | None = None,
+    error: str | None = None,
+    http_code: int | None = None,
 ) -> None:
-    now_utc = datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M:%SZ")
-    with conn:
-        conn.execute(
-            """
-            INSERT INTO scans (scanned_at, city, status, detection, http_code, error)
-            VALUES (?, ?, ?, ?, ?, ?)
+    now_utc = datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
+    conn.execute(
+        """
+        INSERT INTO scans (city, scanned_at, status, detection, url, http_code, error)
+        VALUES (?, ?, ?, ?, ?, ?, ?)
         """,
-            (now_utc, city, status, detection, http_code, error),
+        (city, now_utc, status, detection, url, http_code, error),
+    )
+    conn.commit()
+
+
+# ─────────────────────────────────────────────
+# EXÉCUTION DU SCRAPING
+# ─────────────────────────────────────────────
+def scrape_single_url(client: ScrapflyClient, url: str) -> tuple[int, str]:
+    """Scrape une URL unique via Scrapfly et retourne (http_code, html_content)."""
+    result: ScrapeApiResponse = client.scrape(
+        ScrapeConfig(
+            url=url,
+            asp=SCRAPFLY_OPTIONS["asp"],
+            render_js=SCRAPFLY_OPTIONS["render_js"],
+            proxy_pool=SCRAPFLY_OPTIONS["proxy_pool"],
+            country=SCRAPFLY_OPTIONS["country"],
+            wait_for_selector=SCRAPFLY_OPTIONS.get("wait_for_selector"),
+            headers={
+                "Accept-Language": "fr-FR,fr;q=0.9",
+                "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
+            },
         )
+    )
+    return result.context.get("status_code", 0), result.content or ""
 
 
-# ─────────────────────────────────────────────
-# NORMALISATION ET DÉTECTION
-# ─────────────────────────────────────────────
-def normalize_text(text: str) -> str:
-    """Passe en minuscule, supprime les accents, normalise les apostrophes."""
-    if not text:
-        return ""
-    text = text.lower()
-    text = text.replace("’", "'").replace("`", "'").replace("´", "'")
-    text = unicodedata.normalize("NFKD", text)
-    text = "".join(c for c in text if not unicodedata.combining(c))
-    return text
-
-
-def detect_unavailability(raw_html: str, city_name: str) -> tuple[bool, str]:
-    """Détecte les signaux d'indisponibilité dans le contenu HTML."""
-    html_clean = normalize_text(raw_html)
-
-    for signal in UNAVAILABILITY_SIGNALS:
-        sig_clean = normalize_text(signal)
-        if sig_clean in html_clean:
-            log.info("[%s] Signal detecte : '%s'", city_name, signal)
-            return True, signal
-
-    return False, ""
-
-
-# ─────────────────────────────────────────────
-# SCRAPING VILLE VIA SCRAPERAPI
-# ─────────────────────────────────────────────
-def scrape_city(city: dict, conn: sqlite3.Connection) -> None:
+def scrape_city(client: ScrapflyClient, city: dict, conn: sqlite3.Connection) -> None:
     city_name = city["name"]
-    url = city["url"]
-    log.info("[%s] Scraping McDo via ScraperAPI -> %s", city_name, url[:60] + "...")
+    store_url = city.get("url")
+    city_url = build_ubereats_url(city)
 
-    params = {
-        "api_key": SCRAPERAPI_KEY,
-        "url": url,
-        "render": "true",
-        "country_code": "fr",
-        "render_wait": "4000",
-    }
-    endpoint = f"http://api.scraperapi.com?{urlencode(params)}"
+    # On privilégie l'URL directe du magasin principal s'il existe, sinon l'URL de ville
+    urls_to_check = [u for u in [store_url, city_url] if u]
+    
+    log.info("[%s] Verification sur %d URL(s)...", city_name, len(urls_to_check))
+
+    is_unavailable = False
+    detection_phrase = None
+    last_http_code = 200
+    used_url = urls_to_check[0]
 
     try:
-        response = requests.get(endpoint, timeout=60)
-        http_code = response.status_code
-        raw_html = response.text or ""
-        log.info("[%s] HTTP %s - Taille HTML : %d octets", city_name, http_code, len(raw_html))
+        for url in urls_to_check:
+            log.info("[%s] Scraping -> %s", city_name, url[:70] + "...")
+            http_code, raw_html = scrape_single_url(client, url)
+            last_http_code = http_code
+            used_url = url
 
-        if http_code == 200 and len(raw_html) > 5000:
-            is_unavailable, detection_phrase = detect_unavailability(raw_html, city_name)
+            unavail, phrase = detect_unavailability(raw_html, city_name)
+            if unavail:
+                is_unavailable = True
+                detection_phrase = phrase
+                log.warning("[%s] Signal detecte sur %s: '%s'", city_name, url[:60], phrase)
+                break
 
-            if is_unavailable:
-                status = "INDISPONIBLE"
-                log.warning("[%s] -- INDISPONIBLE -- Detecte via : '%s'", city_name, detection_phrase)
-            else:
-                status = "DISPONIBLE"
-                log.info("[%s] ++ DISPONIBLE ++", city_name)
-
-            save_result(
-                conn,
-                city=city_name,
-                status=status,
-                detection=detection_phrase if is_unavailable else None,
-                http_code=200,
-            )
+        if is_unavailable:
+            status = "INDISPONIBLE"
+            log.warning("[%s] ⚠️  INDISPONIBLE — Détecté via : '%s'", city_name, detection_phrase)
         else:
-            log.error("[%s] Erreur ou reponse trop courte (HTTP %s - %d octets)", city_name, http_code, len(raw_html))
-            save_result(
-                conn,
-                city=city_name,
-                status="ERREUR",
-                http_code=http_code,
-                error=f"HTML invalide ou HTTP {http_code}",
-            )
+            status = "DISPONIBLE"
+            log.info("[%s] ✅  DISPONIBLE", city_name)
 
-    except Exception as e:
-        log.error("[%s] ERREUR connexion ScraperAPI : %s", city_name, e)
+        save_result(
+            conn,
+            city=city_name,
+            status=status,
+            detection=detection_phrase,
+            url=used_url,
+            http_code=last_http_code,
+        )
+
+    except Exception as exc:
+        error_msg = str(exc)
+        log.error("[%s] ❌  Erreur scraping : %s", city_name, error_msg)
         save_result(
             conn,
             city=city_name,
             status="ERREUR",
-            http_code=0,
-            error=str(e),
+            error=error_msg,
+            url=used_url,
         )
 
 
-# ─────────────────────────────────────────────
-# MAIN
-# ─────────────────────────────────────────────
-def main() -> None:
-    log.info("========================================")
-    log.info("UberEats Monitor (ScraperAPI Direct Stores) — Demarrage du scan")
-    log.info("Heure UTC : %s", datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M:%S"))
-    log.info("========================================")
+def main():
+    if not SCRAPFLY_API_KEY:
+        log.error("Clé API Scrapfly manquante !")
+        sys.exit(1)
+
+    log.info("═══════════════════════════════════════════")
+    log.info("  UberEats Monitor — Démarrage du scan")
+    log.info("  Heure UTC : %s", datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M:%S"))
+    log.info("  Villes : %s", ", ".join(c["name"] for c in CITIES))
+    log.info("═══════════════════════════════════════════")
 
     conn = init_db()
+    client = ScrapflyClient(key=SCRAPFLY_API_KEY)
 
     for city in CITIES:
-        scrape_city(city, conn)
+        scrape_city(client, city, conn)
 
     conn.close()
-    log.info("========================================")
-    log.info("Scan termine")
-    log.info("========================================")
+    log.info("═══════════════════════════════════════════")
+    log.info("  Scan terminé ✓")
+    log.info("═══════════════════════════════════════════")
 
 
 if __name__ == "__main__":
