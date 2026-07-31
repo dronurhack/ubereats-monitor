@@ -52,7 +52,7 @@ jobs:
       - name: 🔍 Scanner les villes UberEats
         run: python scraper.py
         env:
-          SCRAPERAPI_KEY: ${{ secrets.SCRAPERAPI_KEY || '033ddfe5d867ec0be6ee2dbbd19a4906' }}
+          SCRAPERAPI_KEY: ${{ secrets.SCRAPERAPI_KEY }}
 
       # ── 6. Générer le dashboard HTML ─────────────────────────────────────────
       - name: 📊 Générer le dashboard
