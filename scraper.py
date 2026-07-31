@@ -1,5 +1,5 @@
 """
-scraper.py — Surveillance UberEats via ScraperAPI (render JS)
+scraper.py — Surveillance UberEats via Playwright (100% Gratuit, Illimité, sans API payante)
 Détecte "Aucun coursier à proximité" sur les pages McDonald's de chaque ville.
 Force la bonne adresse de livraison via le paramètre pl= dans l'URL.
 """
@@ -10,12 +10,10 @@ import logging
 import os
 import sqlite3
 import sys
-import time
 import unicodedata
 from datetime import datetime, timezone
-from html.parser import HTMLParser
 
-import requests
+from playwright.sync_api import sync_playwright
 
 from config import (
     CITIES,
@@ -25,10 +23,8 @@ from config import (
 )
 
 # ─────────────────────────────────────────────
-# CONFIGURATION
+# CONFIGURATION LOGGING
 # ─────────────────────────────────────────────
-SCRAPERAPI_KEY = os.getenv("SCRAPERAPI_KEY", "")
-
 logging.basicConfig(
     level=getattr(logging, LOG_LEVEL, logging.INFO),
     format="%(asctime)s [%(levelname)s] %(message)s",
@@ -44,8 +40,6 @@ def build_store_url(city: dict) -> str:
     """
     Construit l'URL du store McDonald's avec le paramètre pl= qui force
     l'adresse de livraison dans la bonne ville.
-    Cela garantit que UberEats affiche "Lesneven" quand on scanne Lesneven,
-    "Landivisiau" quand on scanne Landivisiau, etc.
     """
     location_payload = {
         "addressLine1": city["name"],
@@ -79,44 +73,10 @@ def normalize_text(text: str) -> str:
     return text.lower()
 
 
-class VisibleTextExtractor(HTMLParser):
-    def __init__(self):
-        super().__init__()
-        self.result = []
-        self._skip = False
-
-    def handle_starttag(self, tag, attrs):
-        if tag in ("script", "style", "noscript", "head"):
-            self._skip = True
-
-    def handle_endtag(self, tag):
-        if tag in ("script", "style", "noscript", "head"):
-            self._skip = False
-
-    def handle_data(self, data):
-        if not self._skip:
-            stripped = data.strip()
-            if stripped:
-                self.result.append(stripped)
-
-    def get_text(self) -> str:
-        return " ".join(self.result)
-
-
-def extract_visible_text(html: str) -> str:
-    ext = VisibleTextExtractor()
-    try:
-        ext.feed(html)
-    except Exception:
-        pass
-    return ext.get_text()
-
-
-def detect_unavailability(html: str) -> tuple[bool, str | None]:
+def detect_unavailability(visible_text: str) -> tuple[bool, str | None]:
     """
-    Cherche les signaux d'indisponibilité UNIQUEMENT dans le texte visible.
+    Cherche les signaux d'indisponibilité dans le texte visible capturé par Playwright.
     """
-    visible_text = extract_visible_text(html)
     normalized = normalize_text(visible_text)
 
     for signal in UNAVAILABILITY_SIGNALS:
@@ -125,25 +85,6 @@ def detect_unavailability(html: str) -> tuple[bool, str | None]:
             return True, signal
 
     return False, None
-
-
-# ─────────────────────────────────────────────
-# SCRAPERAPI — Requête HTTP simple
-# ─────────────────────────────────────────────
-def scrape_url(target_url: str) -> tuple[int, str]:
-    params = {
-        "api_key": SCRAPERAPI_KEY,
-        "url": target_url,
-        "render": "false",
-        "country_code": "fr",
-        "device_type": "desktop",
-    }
-    resp = requests.get(
-        "https://api.scraperapi.com",
-        params=params,
-        timeout=60,
-    )
-    return resp.status_code, resp.text
 
 
 # ─────────────────────────────────────────────
@@ -187,23 +128,25 @@ def save_result(conn, city, status, url=None, detection=None, error=None, http_c
 
 
 # ─────────────────────────────────────────────
-# SCRAPING PRINCIPAL
+# SCRAPING PLAYWRIGHT (Navigateur Chromium réel)
 # ─────────────────────────────────────────────
-def scrape_city(city: dict, conn: sqlite3.Connection) -> None:
+def scrape_city(page, city: dict, conn: sqlite3.Connection) -> None:
     city_name = city["name"]
     url = build_store_url(city)
-    log.info("[%s] Scraping → %s", city_name, url[:100])
+    log.info("[%s] Navigation Playwright → %s", city_name, url[:100])
 
     try:
-        http_code, html = scrape_url(url)
-        log.info("[%s] HTTP %s — %d octets reçus", city_name, http_code, len(html))
+        response = page.goto(url, wait_until="domcontentloaded", timeout=45000)
+        http_code = response.status if response else 200
 
-        # Debug : afficher le texte visible pour vérifier la ville affichée
-        visible = extract_visible_text(html)
-        normalized = normalize_text(visible)
+        # Attente d'un court délai pour laisser les composants JS réactifs charger
+        page.wait_for_timeout(3000)
+
+        visible_text = page.inner_text("body")
+        normalized = normalize_text(visible_text)
         log.info("[%s] TEXTE VISIBLE (extrait): %s", city_name, normalized[:300])
 
-        is_unavail, phrase = detect_unavailability(html)
+        is_unavail, phrase = detect_unavailability(visible_text)
 
         if is_unavail:
             status = "INDISPONIBLE"
@@ -215,27 +158,40 @@ def scrape_city(city: dict, conn: sqlite3.Connection) -> None:
         save_result(conn, city_name, status, url=url, detection=phrase, http_code=http_code)
 
     except Exception as exc:
-        log.error("[%s] ❌ Erreur: %s", city_name, str(exc))
+        log.error("[%s] ❌ Erreur Playwright: %s", city_name, str(exc))
         save_result(conn, city_name, "ERREUR", url=url, error=str(exc))
 
 
 def main():
-    if not SCRAPERAPI_KEY:
-        log.error("Clé SCRAPERAPI_KEY manquante !")
-        sys.exit(1)
-
     log.info("═══════════════════════════════════════════")
-    log.info("  UberEats Monitor — Démarrage du scan")
+    log.info("  UberEats Monitor — Démarrage du scan (Playwright)")
     log.info("  Heure UTC : %s", datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M:%S"))
     log.info("  Villes : %s", ", ".join(c["name"] for c in CITIES))
-    log.info("  API : ScraperAPI (render JS activé)")
+    log.info("  Navigateur : Chromium Headless (0€ / Illimité)")
     log.info("═══════════════════════════════════════════")
 
     conn = init_db()
 
-    for city in CITIES:
-        scrape_city(city, conn)
-        time.sleep(2)
+    with sync_playwright() as p:
+        browser = p.chromium.launch(
+            headless=True,
+            args=[
+                "--no-sandbox",
+                "--disable-setuid-sandbox",
+                "--disable-blink-features=AutomationControlled",
+            ],
+        )
+        context = browser.new_context(
+            user_agent="Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36",
+            locale="fr-FR",
+            timezone_id="Europe/Paris",
+        )
+        page = context.new_page()
+
+        for city in CITIES:
+            scrape_city(page, city, conn)
+
+        browser.close()
 
     conn.close()
     log.info("═══════════════════════════════════════════")
