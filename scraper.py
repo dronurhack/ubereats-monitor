@@ -27,7 +27,7 @@ from config import (
 # ─────────────────────────────────────────────
 # CONFIGURATION
 # ─────────────────────────────────────────────
-SCRAPERAPI_KEY = os.getenv("SCRAPERAPI_KEY", "033ddfe5d867ec0be6ee2dbbd19a4906")
+SCRAPERAPI_KEY = os.getenv("SCRAPERAPI_KEY", "")
 
 logging.basicConfig(
     level=getattr(logging, LOG_LEVEL, logging.INFO),
@@ -134,9 +134,8 @@ def scrape_url(target_url: str) -> tuple[int, str]:
     params = {
         "api_key": SCRAPERAPI_KEY,
         "url": target_url,
-        "render": "true",
+        "render": "false",
         "country_code": "fr",
-        "wait_for_selector": "main",
         "device_type": "desktop",
     }
     resp = requests.get(
