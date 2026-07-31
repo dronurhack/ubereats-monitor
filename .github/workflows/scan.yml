@@ -1,5 +1,5 @@
 # ─────────────────────────────────────────────────────────────────────────────
-# .github/workflows/scan.yml — GitHub Actions : surveillance automatique (ScraperAPI)
+# .github/workflows/scan.yml — GitHub Actions : surveillance via Playwright
 # ─────────────────────────────────────────────────────────────────────────────
 
 name: UberEats Monitor — Scan toutes les 10 min
@@ -39,23 +39,25 @@ jobs:
       - name: 📦 Installer les dépendances
         run: pip install -r requirements.txt
 
-      # ── 4. Répertoires ───────────────────────────────────────────────────────
+      # ── 4. Playwright Chromium ───────────────────────────────────────────────
+      - name: 🌐 Installer Chromium Playwright
+        run: playwright install --with-deps chromium
+
+      # ── 5. Répertoires ───────────────────────────────────────────────────────
       - name: 📁 Préparer les répertoires
         run: |
           mkdir -p data
           mkdir -p docs
 
-      # ── 5. Scraper via ScraperAPI ───────────────────────────────────────────
+      # ── 6. Scraper via Playwright ───────────────────────────────────────────
       - name: 🔍 Scanner les villes UberEats
         run: python scraper.py
-        env:
-          SCRAPERAPI_KEY: ${{ secrets.SCRAPERAPI_KEY }}
 
-      # ── 6. Générer le dashboard HTML ─────────────────────────────────────────
+      # ── 7. Générer le dashboard HTML ─────────────────────────────────────────
       - name: 📊 Générer le dashboard
         run: python dashboard.py
 
-      # ── 7. Commiter BDD + dashboard ──────────────────────────────────────────
+      # ── 8. Commiter BDD + dashboard ──────────────────────────────────────────
       - name: 💾 Commiter les nouvelles données
         run: |
           git config user.name "UberEats Monitor Bot"
