@@ -6,8 +6,8 @@ name: UberEats Monitor — Scan toutes les 10 min
 
 on:
   schedule:
-    # Toutes les 15 min, entre 09h et 19h UTC = 11h–21h heure française (été, UTC+2)
-    - cron: "*/15 9-19 * * *"
+    # Toutes les 15 min, entre 09h et 22h UTC = 11h–00h heure française (été, UTC+2)
+    - cron: "*/15 9-22 * * *"
 
   # Déclenchement manuel (pour tester)
   workflow_dispatch:
